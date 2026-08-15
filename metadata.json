@@ -1,0 +1,6 @@
+{
+  "name": "Savrdh Credit Resolution",
+  "description": "Customer-only credit resolution mobile application for Savrdh Financial Services Private Limited featuring digital eKYC, credit bureau report analysis, automated resolution planning, secure payment, instant CRM lead creation, case tracking, document vault, and dedicated advisor messaging.",
+  "requestFramePermissions": ["camera"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
