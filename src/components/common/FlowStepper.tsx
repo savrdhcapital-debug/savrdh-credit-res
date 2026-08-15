@@ -43,7 +43,7 @@ export const FlowStepper: React.FC<FlowStepperProps> = ({ currentStep }) => {
   const currentIndex = getStepIndex(currentStep);
 
   return (
-    <div className="w-full px-4 py-3 bg-navy-950/90 border-b border-slate-800/80 backdrop-blur-xl sticky top-0 z-30 shadow-lg shadow-black/40">
+    <div className="w-full px-4 py-3 bg-navy-950/80 border-b border-navy-700/60 backdrop-blur-md sticky top-0 z-30">
       <div className="flex items-center justify-between max-w-md mx-auto">
         {STEPS_CONFIG.map((s, idx) => {
           const stepNum = s.stepNumber;
@@ -54,19 +54,19 @@ export const FlowStepper: React.FC<FlowStepperProps> = ({ currentStep }) => {
             <div key={s.step} className="flex items-center flex-1 last:flex-none">
               <div className="flex flex-col items-center">
                 <div
-                  className={`w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-extrabold transition-all duration-300 ${
+                  className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-300 ${
                     isCompleted
-                      ? "bg-emerald-500/20 text-emerald-300 border border-emerald-400/60 shadow-sm shadow-emerald-500/30"
+                      ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/50 shadow-sm shadow-emerald-500/20"
                       : isCurrent
-                      ? "bg-gold-gradient text-navy-950 font-black shadow-lg shadow-amber-500/40 scale-110 ring-2 ring-amber-400/40"
-                      : "bg-navy-900 text-slate-500 border border-slate-800"
+                      ? "bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 font-extrabold shadow-lg shadow-amber-500/30 scale-110"
+                      : "bg-navy-800 text-slate-500 border border-slate-700/50"
                   }`}
                 >
-                  {isCompleted ? <Check className="w-3.5 h-3.5 stroke-[3.5]" /> : stepNum}
+                  {isCompleted ? <Check className="w-3.5 h-3.5 stroke-[3]" /> : stepNum}
                 </div>
                 <span
-                  className={`text-[9px] mt-1 font-semibold tracking-tight truncate max-w-[48px] text-center transition-colors ${
-                    isCurrent ? "text-amber-300 font-bold" : isCompleted ? "text-slate-300" : "text-slate-600"
+                  className={`text-[9px] mt-1 font-medium tracking-tight truncate max-w-[48px] text-center ${
+                    isCurrent ? "text-amber-300 font-bold" : isCompleted ? "text-slate-300" : "text-slate-500"
                   }`}
                 >
                   {s.label}
@@ -74,14 +74,10 @@ export const FlowStepper: React.FC<FlowStepperProps> = ({ currentStep }) => {
               </div>
 
               {idx < STEPS_CONFIG.length - 1 && (
-                <div className="flex-1 mx-1.5 mb-3 h-0.5 relative overflow-hidden rounded-full bg-slate-800/80">
+                <div className="flex-1 mx-1.5 mb-3 h-0.5">
                   <div
                     className={`h-full rounded-full transition-all duration-500 ${
-                      stepNum < currentIndex
-                        ? "bg-emerald-400 shadow-sm shadow-emerald-400/50"
-                        : isCurrent
-                        ? "bg-gradient-to-r from-amber-400 to-slate-800"
-                        : "bg-slate-800"
+                      stepNum < currentIndex ? "bg-emerald-500/60" : "bg-slate-800"
                     }`}
                   />
                 </div>
@@ -93,4 +89,3 @@ export const FlowStepper: React.FC<FlowStepperProps> = ({ currentStep }) => {
     </div>
   );
 };
-

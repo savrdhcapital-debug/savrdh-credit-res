@@ -3,41 +3,36 @@
 @layer base {
   body {
     font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
-    background-color: #04070D;
-    color: #F1F5F9;
-    -webkit-font-smoothing: antialiased;
   }
   
-  h1, h2, h3, h4, .font-heading {
+  h1, h2, h3, .font-heading {
     font-family: 'Outfit', 'Plus Jakarta Sans', sans-serif;
-    letter-spacing: -0.02em;
   }
 
   .font-brand {
     font-family: 'Cinzel', serif;
-    letter-spacing: 0.05em;
   }
 }
 
-/* Custom Gold & Luxury Utilities */
+/* Custom Gold & Navy Utilities */
 .bg-navy-950 {
-  background-color: #050811;
+  background-color: #060A13;
 }
 
 .bg-navy-900 {
-  background-color: #0A0F1F;
+  background-color: #0B1120;
 }
 
 .bg-navy-800 {
-  background-color: #10182E;
+  background-color: #111A2E;
 }
 
 .bg-navy-700 {
-  background-color: #17223F;
+  background-color: #1A2642;
 }
 
 .border-navy-700 {
-  border-color: #1F2E52;
+  border-color: #1F2E4F;
 }
 
 .border-gold-500\/30 {
@@ -48,92 +43,60 @@
   border-color: rgba(212, 175, 55, 0.5);
 }
 
-.text-gold-300 {
-  color: #FDE68A;
-}
-
 .text-gold-400 {
-  color: #FBBF24;
+  color: #E5C07B;
 }
 
 .text-gold-500 {
   color: #D4AF37;
 }
 
-/* 24K Metallic Gold Gradients */
 .bg-gold-gradient {
-  background: linear-gradient(135deg, #FDE68A 0%, #F59E0B 35%, #D4AF37 70%, #996515 100%);
-}
-
-.bg-gold-metallic {
-  background: linear-gradient(110deg, #F59E0B 0%, #FBBF24 25%, #FFFBEB 50%, #D4AF37 75%, #B45309 100%);
+  background: linear-gradient(135deg, #F59E0B 0%, #D4AF37 50%, #B8860B 100%);
 }
 
 .bg-gold-subtle {
-  background: linear-gradient(135deg, rgba(245, 158, 11, 0.12) 0%, rgba(212, 175, 55, 0.04) 100%);
+  background: linear-gradient(135deg, rgba(212, 175, 55, 0.15) 0%, rgba(184, 134, 11, 0.05) 100%);
 }
 
 .gold-glow {
-  box-shadow: 0 0 30px -5px rgba(245, 158, 11, 0.35), 0 0 10px rgba(212, 175, 55, 0.2);
+  box-shadow: 0 0 25px -5px rgba(212, 175, 55, 0.25);
 }
 
 .gold-glow-sm {
-  box-shadow: 0 0 15px -3px rgba(245, 158, 11, 0.25);
+  box-shadow: 0 0 12px -2px rgba(212, 175, 55, 0.2);
 }
 
-/* Glassmorphism Luxury Cards */
 .navy-card {
-  background: linear-gradient(180deg, rgba(16, 24, 46, 0.85) 0%, rgba(9, 14, 27, 0.95) 100%);
+  background: linear-gradient(180deg, rgba(17, 26, 46, 0.85) 0%, rgba(11, 17, 32, 0.95) 100%);
   border: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
-  backdrop-filter: blur(20px);
+  backdrop-filter: blur(16px);
 }
 
 .navy-card-gold {
-  background: linear-gradient(180deg, rgba(22, 33, 60, 0.9) 0%, rgba(10, 16, 32, 0.98) 100%);
-  border: 1px solid rgba(245, 158, 11, 0.3);
-  box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.6), 0 0 20px -5px rgba(245, 158, 11, 0.15);
-  backdrop-filter: blur(20px);
-}
-
-.navy-card-vip {
-  background: linear-gradient(145deg, rgba(28, 40, 72, 0.95) 0%, rgba(12, 18, 36, 0.98) 100%);
-  border: 1px solid rgba(251, 191, 36, 0.45);
-  box-shadow: 0 12px 48px 0 rgba(245, 158, 11, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.15);
-  backdrop-filter: blur(24px);
-}
-
-/* Luxury Shimmer Effect */
-@keyframes goldShimmer {
-  0% { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
-}
-
-.shimmer-gold {
-  background: linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(251,191,36,0.15) 50%, rgba(255,255,255,0) 100%);
-  background-size: 200% 100%;
-  animation: goldShimmer 3s infinite;
+  background: linear-gradient(180deg, rgba(20, 30, 54, 0.9) 0%, rgba(13, 20, 38, 0.95) 100%);
+  border: 1px solid rgba(212, 175, 55, 0.25);
+  backdrop-filter: blur(16px);
 }
 
 /* Custom Scrollbar */
 ::-webkit-scrollbar {
-  width: 5px;
-  height: 5px;
+  width: 6px;
+  height: 6px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #050811;
+  background: #0B1120;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #1F2E52;
+  background: #1F2E4F;
   border-radius: 9999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
   background: #D4AF37;
 }
-
 
 @keyframes pulse-subtle {
   0%, 100% { opacity: 1; transform: scale(1); }
