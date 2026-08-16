@@ -31,7 +31,14 @@ export interface KYCData {
   isVerified: boolean;
   verifiedAt?: string;
   kycProvider?: string;
+  kycMethod?: "DOCUMENT_UPLOAD" | "UIDAI_OTP";
   referenceId?: string;
+  panDocUrl?: string;
+  panDocName?: string;
+  aadhaarFrontDocUrl?: string;
+  aadhaarFrontDocName?: string;
+  aadhaarBackDocUrl?: string;
+  aadhaarBackDocName?: string;
   fetchedProfile?: {
     name: string;
     dob: string;
@@ -125,11 +132,28 @@ export interface PaymentDetails {
   amount: number;
   gstAmount: number;
   totalAmount: number;
-  paymentMethod: "UPI" | "CREDIT_CARD" | "DEBIT_CARD" | "NET_BANKING";
+  paymentMethod: "UPI" | "CREDIT_CARD" | "DEBIT_CARD" | "NET_BANKING" | "RAZORPAY_LIVE_GATEWAY" | "RAZORPAY_SANDBOX" | "RAZORPAY_GATEWAY" | string;
   paymentStatus: "SUCCESS" | "PENDING" | "FAILED";
   paidAt: string;
   invoiceNumber: string;
   selectedPackage: ResolutionPackage;
+}
+
+export interface LetterOfAuthorityConsent {
+  isConsentGiven: boolean;
+  grantorName: string;
+  grantorPan: string;
+  grantorAadhaarMasked: string;
+  grantorAddress: string;
+  authorizedEntity: string;
+  cin: string;
+  assignedAdvocateName: string;
+  advocateBarNumber: string;
+  scopeOfAuthority: string[];
+  referenceNumber: string;
+  consentTimestamp: string;
+  digitalSignatureHash: string;
+  ipAddress?: string;
 }
 
 export interface CRMLeadRecord {
@@ -150,6 +174,9 @@ export interface CRMLeadRecord {
   caseStatus: string;
   crmSyncStatus: "SYNCED" | "ROUTED_TO_ADVISOR";
   syncedAt: string;
+  loaStatus?: "EXECUTED_AND_VERIFIED" | "PENDING_EXECUTION";
+  loaReferenceNumber?: string;
+  loaConsentTimestamp?: string;
 }
 
 export interface AssignedAdvisor {
@@ -198,7 +225,7 @@ export interface ChatMessage {
 
 export interface UploadedDoc {
   id: string;
-  category: "PAN" | "BANK_STATEMENT" | "LOAN_STATEMENT" | "SETTLEMENT_LETTER" | "RECOVERY_NOTICE" | "COURT_NOTICE" | "OTHER";
+  category: "LETTER_OF_AUTHORITY" | "TAX_INVOICE" | "PAN" | "BANK_STATEMENT" | "LOAN_STATEMENT" | "SETTLEMENT_LETTER" | "RECOVERY_NOTICE" | "COURT_NOTICE" | "OTHER";
   title: string;
   fileName: string;
   fileSize: string;

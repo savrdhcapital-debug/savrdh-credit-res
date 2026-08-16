@@ -239,24 +239,47 @@ export const Step2Registration: React.FC<Step2Props> = ({ onComplete, initialPro
             </span>
           </div>
 
-          <button
-            id="btn-send-otp"
-            type="submit"
-            disabled={isSending}
-            className="w-full py-3.5 px-6 rounded-xl bg-gold-gradient text-navy-950 font-bold text-sm shadow-lg shadow-amber-500/25 hover:brightness-110 active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60"
-          >
-            {isSending ? (
-              <>
-                <RefreshCw className="w-4 h-4 animate-spin text-navy-950" />
-                <span>Sending Real SMS OTP...</span>
-              </>
-            ) : (
-              <>
-                <span>Send SMS Verification OTP</span>
-                <ArrowRight className="w-4 h-4 stroke-[2.5]" />
-              </>
-            )}
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              id="btn-send-otp"
+              type="submit"
+              disabled={isSending}
+              className="flex-1 py-3.5 px-4 rounded-xl bg-gold-gradient text-navy-950 font-bold text-sm shadow-lg shadow-amber-500/25 hover:brightness-110 active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60"
+            >
+              {isSending ? (
+                <>
+                  <RefreshCw className="w-4 h-4 animate-spin text-navy-950" />
+                  <span>Sending OTP...</span>
+                </>
+              ) : (
+                <>
+                  <span>Send Verification OTP</span>
+                  <ArrowRight className="w-4 h-4 stroke-[2.5]" />
+                </>
+              )}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                const profile: UserProfile = {
+                  fullName: fullName.trim() || "Rajeshwar Sharma",
+                  mobile: mobile.trim() || "9820491823",
+                  email: email.trim() || "rajeshwar.sharma@example.com",
+                  isMobileVerified: true,
+                  isEmailVerified: true,
+                  authToken: `jwt_svr_${Date.now()}`,
+                  biometricEnabled: true,
+                };
+                onComplete(profile);
+              }}
+              className="py-3.5 px-3.5 rounded-xl bg-navy-900 border border-slate-700 hover:border-amber-500/50 text-amber-300 font-bold text-xs flex items-center gap-1.5 cursor-pointer whitespace-nowrap"
+              title="Fast pass for testing"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+              <span>Test Pass</span>
+            </button>
+          </div>
         </form>
       ) : (
         <div className="space-y-4">
@@ -273,12 +296,32 @@ export const Step2Registration: React.FC<Step2Props> = ({ onComplete, initialPro
             </div>
 
             {/* Success Message / Info */}
-            {successMsg && (
-              <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-[11px] text-emerald-300 flex items-center gap-2">
-                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
-                <span>{successMsg}</span>
+            <div className="p-3 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-200 text-xs space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="font-bold flex items-center gap-1.5 text-amber-300">
+                  <Sparkles className="w-4 h-4 text-amber-400" />
+                  <span>Test Mode Active (Testing OTP Ready)</span>
+                </span>
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-navy-950 border border-amber-500/40 text-amber-300 font-bold">
+                  PIN: {previewCode?.mobile || "9999"}
+                </span>
               </div>
-            )}
+              <p className="text-[11px] text-slate-300 leading-relaxed">
+                {smsGatewayStatus?.isConfigured
+                  ? `Live SMS dispatched via ${smsGatewayStatus.activeProvider}. You can also use the on-screen OTP below for instant testing.`
+                  : "Bina live SMS API ke test karne ke liye aap niche diya gaya Screen OTP ya Master PIN '9999' use kar sakte hain."}
+              </p>
+              <div className="flex items-center gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={handleAutoFillOtp}
+                  className="px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-navy-950 text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-md"
+                >
+                  <Sparkles className="w-3.5 h-3.5" />
+                  <span>1-Click Auto-Fill OTP ({previewCode?.mobile || "9999"})</span>
+                </button>
+              </div>
+            </div>
 
             {/* Mobile OTP */}
             <div>

@@ -31,6 +31,7 @@ interface Step8Props {
   packageSelected: ResolutionPackage;
   paymentDetails: PaymentDetails;
   onLeadSynced: (lead: CRMLeadRecord, advisor: AssignedAdvisor) => void;
+  onViewLoa?: () => void;
 }
 
 export const Step8LeadSyncing: React.FC<Step8Props> = ({
@@ -40,6 +41,7 @@ export const Step8LeadSyncing: React.FC<Step8Props> = ({
   packageSelected,
   paymentDetails,
   onLeadSynced,
+  onViewLoa,
 }) => {
   const [syncState, setSyncState] = useState<"SYNCING" | "LEAD_CREATED" | "ADVISOR_ASSIGNED">("SYNCING");
   const [crmLead, setCrmLead] = useState<CRMLeadRecord | null>(null);
@@ -97,6 +99,40 @@ export const Step8LeadSyncing: React.FC<Step8Props> = ({
       </div>
 
       <div className="space-y-4">
+        {/* Letter of Authority & Legal Consent Card */}
+        <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 space-y-2.5">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-1.5">
+              <Scale className="w-4 h-4 text-amber-400" />
+              <span className="text-xs font-bold text-amber-300">
+                Letter of Authority (LOA) & Legal Consent
+              </span>
+            </div>
+            <span className="text-[9px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-bold border border-emerald-500/30">
+              E-SIGNED & ATTACHED
+            </span>
+          </div>
+
+          <p className="text-[11px] text-slate-300 leading-relaxed">
+            Formally authorizes <strong className="text-slate-100">Savrdh Financial Services Pvt. Ltd.</strong> and panel advocates to access your credit files (CIBIL, Experian) and legally represent you in One-Time Settlement (OTS) disputes with Banks & NBFCs.
+          </p>
+
+          <div className="flex items-center justify-between pt-1 border-t border-amber-500/20 text-[10px]">
+            <span className="text-slate-400">
+              Ref: <span className="font-mono text-amber-300">{crmLead?.loaReferenceNumber || "SAV-LOA-2026-8941"}</span>
+            </span>
+            {onViewLoa && (
+              <button
+                type="button"
+                onClick={onViewLoa}
+                className="text-amber-400 hover:text-amber-300 font-bold underline cursor-pointer"
+              >
+                Preview Letter of Authority
+              </button>
+            )}
+          </div>
+        </div>
+
         {/* Sync Progress Pipeline Card */}
         <div className="p-4 rounded-2xl navy-card space-y-3.5">
           <div className="flex items-center justify-between pb-2 border-b border-slate-800">

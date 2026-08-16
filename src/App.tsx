@@ -80,7 +80,7 @@ export default function App() {
   const [advisor, setAdvisor] = useState<AssignedAdvisor>(ASSIGNED_ADVISOR);
 
   // Modals
-  const [activeReportModal, setActiveReportModal] = useState<"CREDIT_REPORT" | "INVOICE" | "RESOLUTION_REPORT" | "NDC_CERTIFICATE" | null>(null);
+  const [activeReportModal, setActiveReportModal] = useState<"CREDIT_REPORT" | "INVOICE" | "RESOLUTION_REPORT" | "NDC_CERTIFICATE" | "LETTER_OF_AUTHORITY" | null>(null);
   const [showSecurityModal, setShowSecurityModal] = useState(false);
 
   // Step 1 -> Step 2
@@ -277,6 +277,7 @@ export default function App() {
           userProfile={userProfile}
           onPaymentSuccess={handlePaymentSuccess}
           onViewInvoice={() => setActiveReportModal("INVOICE")}
+          onViewConsent={() => setActiveReportModal("LETTER_OF_AUTHORITY")}
         />
       )}
 
@@ -289,6 +290,7 @@ export default function App() {
           packageSelected={selectedPackage}
           paymentDetails={paymentDetails}
           onLeadSynced={handleLeadSynced}
+          onViewLoa={() => setActiveReportModal("LETTER_OF_AUTHORITY")}
         />
       )}
 

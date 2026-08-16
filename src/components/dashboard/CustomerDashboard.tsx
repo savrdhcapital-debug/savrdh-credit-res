@@ -68,7 +68,7 @@ interface DashboardProps {
   paymentDetails: PaymentDetails;
   crmLead: CRMLeadRecord;
   advisor?: AssignedAdvisor;
-  onOpenReportModal: (type: "CREDIT_REPORT" | "INVOICE" | "RESOLUTION_REPORT" | "NDC_CERTIFICATE") => void;
+  onOpenReportModal: (type: "CREDIT_REPORT" | "INVOICE" | "RESOLUTION_REPORT" | "NDC_CERTIFICATE" | "LETTER_OF_AUTHORITY") => void;
   onOpenSecurityModal: () => void;
   onLogout: () => void;
 }
@@ -94,8 +94,67 @@ export const CustomerDashboard: React.FC<DashboardProps> = ({
   const [isAdvisorTyping, setIsAdvisorTyping] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
 
-  // Document Vault state
-  const [documents, setDocuments] = useState<UploadedDoc[]>(INITIAL_UPLOADED_DOCS);
+  // Document Vault state initialized with KYC uploaded docs and signed Letter of Authority
+  const [documents, setDocuments] = useState<UploadedDoc[]>(() => {
+    const initialList: UploadedDoc[] = [];
+
+    // Always place the signed Letter of Authority at the top
+    initialList.push({
+      id: "doc-loa-signed",
+      category: "LETTER_OF_AUTHORITY",
+      title: "Letter of Authority & Legal Representation Consent (LOA)",
+      fileName: `SAVRDH_LOA_${kycData?.panNumber || "DISPUTE"}_SIGNED.pdf`,
+      fileSize: "1.8 MB",
+      uploadedAt: "Today",
+      status: "VERIFIED",
+      notes: "Executed under CICRA 2005 & Contract Act 1872 for Bank & CIBIL dispute handling.",
+    });
+
+    if (kycData?.panDocName) {
+      initialList.push({
+        id: "kyc-pan-1",
+        category: "PAN",
+        title: "Customer PAN Card Document",
+        fileName: kycData.panDocName,
+        fileSize: "1.2 MB",
+        uploadedAt: "Today",
+        status: "VERIFIED",
+        notes: `Uploaded via Savrdh Direct Desk (${kycData.panNumber || "Active"}).`,
+      });
+    } else {
+      initialList.push(INITIAL_UPLOADED_DOCS[0]);
+    }
+
+    if (kycData?.aadhaarFrontDocName) {
+      initialList.push({
+        id: "kyc-aadhaar-front",
+        category: "OTHER",
+        title: "Aadhaar Card (Front Side Photo)",
+        fileName: kycData.aadhaarFrontDocName,
+        fileSize: "1.6 MB",
+        uploadedAt: "Today",
+        status: "VERIFIED",
+        notes: `Masked UIDAI ID: ${kycData.maskedAadhaar || "XXXX-XXXX-9283"}.`,
+      });
+    }
+
+    if (kycData?.aadhaarBackDocName) {
+      initialList.push({
+        id: "kyc-aadhaar-back",
+        category: "OTHER",
+        title: "Aadhaar Card (Back Side Address)",
+        fileName: kycData.aadhaarBackDocName,
+        fileSize: "1.3 MB",
+        uploadedAt: "Today",
+        status: "VERIFIED",
+        notes: "Verified address record attached for bank representation.",
+      });
+    }
+
+    // Add recovery notices and bank statements
+    initialList.push(...INITIAL_UPLOADED_DOCS.slice(1));
+    return initialList;
+  });
   const [uploadCategory, setUploadCategory] = useState<UploadedDoc["category"]>("RECOVERY_NOTICE");
   const [isUploading, setIsUploading] = useState(false);
   const [uploadSuccessMsg, setUploadSuccessMsg] = useState("");
@@ -338,6 +397,32 @@ export const CustomerDashboard: React.FC<DashboardProps> = ({
 
             {/* Quick Action Grid */}
             <div className="grid grid-cols-2 gap-2.5">
+              <button
+                onClick={() => onOpenReportModal("LETTER_OF_AUTHORITY")}
+                className="col-span-2 p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/30 hover:border-amber-500 text-left cursor-pointer transition-all flex items-center justify-between"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-amber-500/20 text-amber-300">
+                    <Scale className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h4 className="text-xs font-bold text-slate-100">Official Letter of Authority (LOA)</h4>
+                      <span className="text-[9px] px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-bold border border-emerald-500/30">
+                        ACTIVE & VERIFIED
+                      </span>
+                    </div>
+                    <p className="text-[10px] text-slate-300">
+                      Authorizes Savrdh to legally dispute accounts with CIBIL & Banks on your behalf
+                    </p>
+                  </div>
+                </div>
+                <div className="px-2.5 py-1 rounded-lg bg-amber-500 text-navy-950 text-[10px] font-bold flex items-center gap-1">
+                  <Eye className="w-3 h-3" />
+                  <span>View</span>
+                </div>
+              </button>
+
               <button
                 onClick={() => setActiveTab("timeline")}
                 className="p-3 rounded-xl bg-navy-900 border border-slate-800 hover:border-amber-500/40 text-left cursor-pointer transition-all space-y-1"
@@ -814,7 +899,7 @@ export const CustomerDashboard: React.FC<DashboardProps> = ({
                     </div>
                   </div>
 
-                  <div className="text-right flex-shrink-0">
+                  <div className="text-right flex-shrink-0 flex flex-col items-end gap-1">
                     <span
                       className={`text-[9px] font-bold px-2 py-0.5 rounded-full ${
                         doc.status === "VERIFIED"
@@ -824,9 +909,19 @@ export const CustomerDashboard: React.FC<DashboardProps> = ({
                     >
                       {doc.status}
                     </span>
-                    <span className="text-[9px] text-slate-500 block mt-1">
-                      {doc.uploadedAt}
-                    </span>
+                    {doc.category === "LETTER_OF_AUTHORITY" ? (
+                      <button
+                        onClick={() => onOpenReportModal("LETTER_OF_AUTHORITY")}
+                        className="px-2 py-1 rounded bg-amber-500/20 text-amber-300 hover:bg-amber-500/30 text-[10px] font-bold flex items-center gap-1 cursor-pointer"
+                      >
+                        <Eye className="w-3 h-3" />
+                        <span>View LOA</span>
+                      </button>
+                    ) : (
+                      <span className="text-[9px] text-slate-500 block">
+                        {doc.uploadedAt}
+                      </span>
+                    )}
                   </div>
                 </div>
               ))}
@@ -845,6 +940,36 @@ export const CustomerDashboard: React.FC<DashboardProps> = ({
             </div>
 
             <div className="space-y-3">
+              {/* Item 0: Letter of Authority & Dispute Representation Consent */}
+              <div className="p-3.5 rounded-2xl navy-card border border-amber-500/40 bg-amber-500/5 flex items-center justify-between">
+                <div className="flex items-start gap-3">
+                  <div className="p-2.5 rounded-xl bg-amber-500/20 text-amber-300 border border-amber-500/40">
+                    <Scale className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-1.5">
+                      <h4 className="text-xs font-bold text-slate-100">Letter of Authority (LOA) & Consent</h4>
+                      <span className="text-[9px] px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-300 font-bold">
+                        ACTIVE
+                      </span>
+                    </div>
+                    <p className="text-[10px] text-slate-400">
+                      Ref #{crmLead?.loaReferenceNumber || "SAV-LOA-2026-8941"} • Executed via E-Sign
+                    </p>
+                    <span className="text-[10px] text-amber-300 font-medium">
+                      Empowers Savrdh to legally represent in CIBIL & Bank disputes
+                    </span>
+                  </div>
+                </div>
+                <button
+                  onClick={() => onOpenReportModal("LETTER_OF_AUTHORITY")}
+                  className="px-3 py-1.5 rounded-lg bg-gold-gradient text-navy-950 text-xs font-bold flex items-center gap-1 cursor-pointer hover:brightness-110"
+                >
+                  <Eye className="w-3.5 h-3.5" />
+                  <span>View LOA</span>
+                </button>
+              </div>
+
               {/* Item 1: GST Tax Invoice */}
               <div className="p-3.5 rounded-2xl navy-card border border-slate-800 flex items-center justify-between">
                 <div className="flex items-start gap-3">
