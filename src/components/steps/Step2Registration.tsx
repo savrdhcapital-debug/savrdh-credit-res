@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from "react";
-import { User, Phone, Mail, ArrowRight, ShieldCheck, CheckCircle2, KeyRound, Sparkles, RefreshCw, Send, Radio } from "lucide-react";
+import React, { useEffect, useState } from "react";
+import { ArrowRight, CheckCircle2, Mail, Phone, RefreshCw, ShieldCheck, User } from "lucide-react";
 import { UserProfile } from "../../types";
-import { sendAuthOtp, verifyAuthOtp, getSmsConfigStatus } from "../../services/api";
+import { getSmsConfigStatus, sendAuthOtp, verifyAuthOtp } from "../../services/api";
 
 interface Step2Props {
   onComplete: (profile: UserProfile) => void;
@@ -9,421 +9,129 @@ interface Step2Props {
 }
 
 export const Step2Registration: React.FC<Step2Props> = ({ onComplete, initialProfile }) => {
-  const [fullName, setFullName] = useState(initialProfile?.fullName || "Rajeshwar Sharma");
-  const [mobile, setMobile] = useState(initialProfile?.mobile || "9820491823");
-  const [email, setEmail] = useState(initialProfile?.email || "rajeshwar.sharma@example.com");
-
+  const [fullName, setFullName] = useState(initialProfile?.fullName || "");
+  const [mobile, setMobile] = useState(initialProfile?.mobile || "");
+  const [email, setEmail] = useState(initialProfile?.email || "");
   const [otpSent, setOtpSent] = useState(false);
   const [mobileOtp, setMobileOtp] = useState("");
-  const [emailOtp, setEmailOtp] = useState("");
   const [isSending, setIsSending] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
-
-  const [previewCode, setPreviewCode] = useState<{ mobile?: string; email?: string } | null>(null);
-  const [resendTimer, setResendTimer] = useState(0);
-  const [smsGatewayStatus, setSmsGatewayStatus] = useState<{ isConfigured: boolean; activeProvider: string; message: string } | null>(null);
+  const [smsStatus, setSmsStatus] = useState<{ isConfigured: boolean; activeProvider: string; message: string } | null>(null);
 
   useEffect(() => {
-    getSmsConfigStatus().then(setSmsGatewayStatus).catch(() => null);
+    getSmsConfigStatus().then(setSmsStatus).catch(() => null);
   }, []);
 
-  useEffect(() => {
-    let interval: any;
-    if (resendTimer > 0) {
-      interval = setInterval(() => {
-        setResendTimer((prev) => prev - 1);
-      }, 1000);
-    }
-    return () => clearInterval(interval);
-  }, [resendTimer]);
-
-  const handleSendOtp = async (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
-    if (!fullName.trim()) {
-      setErrorMsg("Please enter your full legal name as per PAN.");
-      return;
-    }
-    if (mobile.length < 10) {
-      setErrorMsg("Please enter a valid 10-digit mobile number.");
-      return;
-    }
-    if (!email.includes("@") || !email.includes(".")) {
-      setErrorMsg("Please enter a valid email address.");
-      return;
-    }
-
-    setIsSending(true);
+  const handleSendOtp = async (e: React.FormEvent) => {
+    e.preventDefault();
     setErrorMsg("");
     setSuccessMsg("");
 
-    try {
-      const res = await sendAuthOtp({
-        mobile: mobile.trim(),
-        email: email.trim(),
-        fullName: fullName.trim(),
-      });
+    if (!fullName.trim()) return setErrorMsg("Please enter your full legal name.");
+    if (!/^\d{10}$/.test(mobile)) return setErrorMsg("Please enter a valid 10-digit mobile number.");
+    if (!/^\S+@\S+\.\S+$/.test(email)) return setErrorMsg("Please enter a valid email address.");
 
-      if (res.success) {
-        setOtpSent(true);
-        setResendTimer(30);
-        setSuccessMsg(res.message || `OTP dispatched to +91 ${mobile.slice(-10)}`);
-        setPreviewCode({
-          mobile: res.previewMobileOtp,
-          email: res.previewEmailOtp,
-        });
-      } else {
-        setErrorMsg(res.message || "Failed to dispatch OTP");
-      }
+    setIsSending(true);
+    try {
+      const res = await sendAuthOtp({ mobile, email, fullName: fullName.trim() });
+      if (!res.success) throw new Error(res.message || "OTP could not be sent");
+      setOtpSent(true);
+      setSuccessMsg(res.message || "OTP sent successfully.");
     } catch (err: any) {
-      setErrorMsg(err.message || "Failed to communicate with OTP service.");
+      setErrorMsg(err?.message || "OTP service is currently unavailable.");
     } finally {
       setIsSending(false);
     }
   };
 
-  const handleAutoFillOtp = () => {
-    if (previewCode?.mobile) {
-      setMobileOtp(previewCode.mobile);
-    } else {
-      setMobileOtp("7492");
-    }
-    if (previewCode?.email) {
-      setEmailOtp(previewCode.email);
-    } else {
-      setEmailOtp("3816");
-    }
+  const handleVerify = async () => {
     setErrorMsg("");
-  };
-
-  const handleVerifyAndRegister = async () => {
-    if (mobileOtp.length < 4) {
-      setErrorMsg("Please enter the 4-digit Mobile SMS OTP.");
-      return;
-    }
+    if (mobileOtp.trim().length < 4) return setErrorMsg("Please enter the OTP received on your mobile.");
 
     setIsVerifying(true);
-    setErrorMsg("");
-
     try {
-      const res = await verifyAuthOtp({
-        mobile: mobile.trim(),
-        mobileOtp: mobileOtp.trim(),
-        emailOtp: emailOtp.trim() || undefined,
+      const res = await verifyAuthOtp({ mobile, mobileOtp: mobileOtp.trim() });
+      if (!res.success) throw new Error(res.message || "OTP verification failed");
+      onComplete({
+        fullName: fullName.trim(),
+        mobile,
+        email: email.trim().toLowerCase(),
+        isMobileVerified: true,
+        isEmailVerified: false,
+        authToken: res.authToken,
+        biometricEnabled: false,
       });
-
-      if (res.success) {
-        const profile: UserProfile = {
-          fullName: fullName.trim(),
-          mobile: mobile.trim(),
-          email: email.trim(),
-          isMobileVerified: true,
-          isEmailVerified: true,
-          authToken: res.authToken || `jwt_svr_${Date.now()}`,
-          biometricEnabled: true,
-        };
-        onComplete(profile);
-      } else {
-        setErrorMsg(res.message || "Invalid OTP entered.");
-      }
     } catch (err: any) {
-      setErrorMsg(err.message || "OTP verification failed. Please check the code.");
+      setErrorMsg(err?.message || "OTP verification failed.");
     } finally {
       setIsVerifying(false);
     }
   };
 
   return (
-    <div className="p-5 max-w-md mx-auto">
-      {/* Title */}
-      <div className="mb-5">
-        <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-300 text-[11px] font-semibold mb-2">
-          <ShieldCheck className="w-3.5 h-3.5" />
-          <span>Step 2 of 8: Customer Registration & OTP</span>
+    <div className="p-5 max-w-md mx-auto space-y-5">
+      <div>
+        <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-300 text-[11px] font-semibold mb-2">
+          <ShieldCheck className="w-3.5 h-3.5" /> Step 2 of 8: Registration
         </div>
-        <h2 className="text-xl font-bold text-slate-100">Create Customer Account</h2>
-        <p className="text-xs text-slate-400 mt-1">
-          Enter your registered details to verify your phone via real-time SMS OTP and begin your case.
-        </p>
-
-        {/* SMS Gateway Status Banner */}
-        {smsGatewayStatus && (
-          <div className="mt-2.5 flex items-center justify-between px-2.5 py-1.5 rounded-lg bg-navy-950/90 border border-slate-800 text-[10px]">
-            <span className="flex items-center gap-1.5 text-slate-300">
-              <Radio className={`w-3 h-3 ${smsGatewayStatus.isConfigured ? "text-emerald-400 animate-pulse" : "text-amber-400"}`} />
-              <span>SMS Route: <strong className="text-slate-200">{smsGatewayStatus.activeProvider}</strong></span>
-            </span>
-            <span className={`font-mono text-[9px] px-1.5 py-0.2 rounded ${smsGatewayStatus.isConfigured ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20" : "bg-amber-500/10 text-amber-300 border border-amber-500/20"}`}>
-              {smsGatewayStatus.isConfigured ? "LIVE GATEWAY" : "OTP ACTIVE"}
-            </span>
-          </div>
-        )}
+        <h2 className="text-xl font-bold text-slate-100">Create your SAVRDH account</h2>
+        <p className="text-xs text-slate-400 mt-1">Enter your own details. No demo customer information is pre-filled.</p>
       </div>
+
+      {smsStatus && !smsStatus.isConfigured && (
+        <div className="p-3 rounded-xl border border-amber-500/30 bg-amber-500/10 text-xs text-amber-200">
+          Live SMS gateway is not configured on this deployment. OTP verification will remain unavailable until an SMS provider is configured.
+        </div>
+      )}
 
       {!otpSent ? (
         <form onSubmit={handleSendOtp} className="space-y-4">
           <div className="p-4 rounded-2xl navy-card space-y-4">
-            {/* Full Name */}
-            <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                Full Name (as per PAN Card) *
-              </label>
-              <div className="relative">
-                <User className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-                <input
-                  id="input-full-name"
-                  type="text"
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                  placeholder="e.g. Rajeshwar Sharma"
-                  className="w-full pl-10 pr-4 py-3 bg-navy-950/80 border border-slate-700/70 focus:border-amber-500 rounded-xl text-xs text-slate-100 placeholder-slate-500 focus:outline-none transition-colors"
-                  required
-                />
+            <label className="block text-xs font-semibold text-slate-300">
+              Full Name *
+              <div className="relative mt-1.5">
+                <User className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
+                <input value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="Name as per PAN" className="w-full pl-10 pr-4 py-3 rounded-xl bg-navy-950 border border-slate-700 text-sm text-slate-100" required />
               </div>
-            </div>
-
-            {/* Mobile Number */}
-            <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                Mobile Number (for SMS OTP Verification) *
-              </label>
-              <div className="relative flex items-center">
-                <div className="absolute left-3.5 flex items-center gap-1 text-slate-400 text-xs font-semibold">
-                  <Phone className="w-3.5 h-3.5 text-slate-400" />
-                  <span>+91</span>
-                </div>
-                <input
-                  id="input-mobile"
-                  type="tel"
-                  maxLength={10}
-                  value={mobile}
-                  onChange={(e) => setMobile(e.target.value.replace(/\D/g, ""))}
-                  placeholder="9876543210"
-                  className="w-full pl-16 pr-4 py-3 bg-navy-950/80 border border-slate-700/70 focus:border-amber-500 rounded-xl text-xs text-slate-100 placeholder-slate-500 focus:outline-none transition-colors"
-                  required
-                />
+            </label>
+            <label className="block text-xs font-semibold text-slate-300">
+              Mobile Number *
+              <div className="relative mt-1.5">
+                <Phone className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
+                <input value={mobile} onChange={(e) => setMobile(e.target.value.replace(/\D/g, "").slice(0, 10))} placeholder="10-digit mobile number" inputMode="numeric" className="w-full pl-10 pr-4 py-3 rounded-xl bg-navy-950 border border-slate-700 text-sm text-slate-100" required />
               </div>
-            </div>
-
-            {/* Email Address */}
-            <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                Official Email Address *
-              </label>
-              <div className="relative">
-                <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-                <input
-                  id="input-email"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="rajeshwar.sharma@example.com"
-                  className="w-full pl-10 pr-4 py-3 bg-navy-950/80 border border-slate-700/70 focus:border-amber-500 rounded-xl text-xs text-slate-100 placeholder-slate-500 focus:outline-none transition-colors"
-                  required
-                />
+            </label>
+            <label className="block text-xs font-semibold text-slate-300">
+              Email Address *
+              <div className="relative mt-1.5">
+                <Mail className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
+                <input value={email} onChange={(e) => setEmail(e.target.value)} type="email" placeholder="you@example.com" className="w-full pl-10 pr-4 py-3 rounded-xl bg-navy-950 border border-slate-700 text-sm text-slate-100" required />
               </div>
-            </div>
+            </label>
           </div>
-
-          {errorMsg && (
-            <p className="text-xs text-rose-400 bg-rose-500/10 border border-rose-500/20 p-2.5 rounded-xl">
-              {errorMsg}
-            </p>
-          )}
-
-          <div className="p-3 rounded-xl bg-amber-500/5 border border-amber-500/20 text-[11px] text-amber-200/90 leading-relaxed flex items-start gap-2">
-            <KeyRound className="w-4 h-4 text-amber-400 mt-0.5 flex-shrink-0" />
-            <span>
-              We will send a high-priority verification SMS OTP to your registered phone number (+91 {mobile || "..."}).
-            </span>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <button
-              id="btn-send-otp"
-              type="submit"
-              disabled={isSending}
-              className="flex-1 py-3.5 px-4 rounded-xl bg-gold-gradient text-navy-950 font-bold text-sm shadow-lg shadow-amber-500/25 hover:brightness-110 active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60"
-            >
-              {isSending ? (
-                <>
-                  <RefreshCw className="w-4 h-4 animate-spin text-navy-950" />
-                  <span>Sending OTP...</span>
-                </>
-              ) : (
-                <>
-                  <span>Send Verification OTP</span>
-                  <ArrowRight className="w-4 h-4 stroke-[2.5]" />
-                </>
-              )}
-            </button>
-
-            <button
-              type="button"
-              onClick={() => {
-                const profile: UserProfile = {
-                  fullName: fullName.trim() || "Rajeshwar Sharma",
-                  mobile: mobile.trim() || "9820491823",
-                  email: email.trim() || "rajeshwar.sharma@example.com",
-                  isMobileVerified: true,
-                  isEmailVerified: true,
-                  authToken: `jwt_svr_${Date.now()}`,
-                  biometricEnabled: true,
-                };
-                onComplete(profile);
-              }}
-              className="py-3.5 px-3.5 rounded-xl bg-navy-900 border border-slate-700 hover:border-amber-500/50 text-amber-300 font-bold text-xs flex items-center gap-1.5 cursor-pointer whitespace-nowrap"
-              title="Fast pass for testing"
-            >
-              <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-              <span>Test Pass</span>
-            </button>
-          </div>
+          <button disabled={isSending} className="w-full py-3.5 rounded-xl bg-gold-gradient text-navy-950 font-bold text-sm flex items-center justify-center gap-2 disabled:opacity-60">
+            {isSending ? <RefreshCw className="w-4 h-4 animate-spin" /> : <ArrowRight className="w-4 h-4" />}
+            {isSending ? "Sending OTP..." : "Send OTP"}
+          </button>
         </form>
       ) : (
         <div className="space-y-4">
-          <div className="p-4 rounded-2xl navy-card space-y-4">
-            <div className="flex items-center justify-between pb-2 border-b border-slate-800">
-              <span className="text-xs font-semibold text-slate-300">Enter Received OTP</span>
-              <button
-                type="button"
-                onClick={() => setOtpSent(false)}
-                className="text-[11px] text-amber-400 hover:underline"
-              >
-                Edit Mobile Number
-              </button>
-            </div>
-
-            {/* Success Message / Info */}
-            <div className="p-3 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-200 text-xs space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="font-bold flex items-center gap-1.5 text-amber-300">
-                  <Sparkles className="w-4 h-4 text-amber-400" />
-                  <span>Test Mode Active (Testing OTP Ready)</span>
-                </span>
-                <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-navy-950 border border-amber-500/40 text-amber-300 font-bold">
-                  PIN: {previewCode?.mobile || "9999"}
-                </span>
-              </div>
-              <p className="text-[11px] text-slate-300 leading-relaxed">
-                {smsGatewayStatus?.isConfigured
-                  ? `Live SMS dispatched via ${smsGatewayStatus.activeProvider}. You can also use the on-screen OTP below for instant testing.`
-                  : "Bina live SMS API ke test karne ke liye aap niche diya gaya Screen OTP ya Master PIN '9999' use kar sakte hain."}
-              </p>
-              <div className="flex items-center gap-2 pt-1">
-                <button
-                  type="button"
-                  onClick={handleAutoFillOtp}
-                  className="px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-navy-950 text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-md"
-                >
-                  <Sparkles className="w-3.5 h-3.5" />
-                  <span>1-Click Auto-Fill OTP ({previewCode?.mobile || "9999"})</span>
-                </button>
-              </div>
-            </div>
-
-            {/* Mobile OTP */}
-            <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <label className="text-xs font-medium text-slate-300 flex items-center gap-1.5">
-                  <Phone className="w-3.5 h-3.5 text-amber-400" />
-                  SMS OTP sent to +91 {mobile}
-                </label>
-                {previewCode?.mobile && (
-                  <span className="text-[10px] text-emerald-400 font-mono bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">
-                    OTP: {previewCode.mobile}
-                  </span>
-                )}
-              </div>
-              <input
-                id="input-mobile-otp"
-                type="text"
-                maxLength={6}
-                value={mobileOtp}
-                onChange={(e) => setMobileOtp(e.target.value.replace(/\D/g, ""))}
-                placeholder="Enter SMS OTP"
-                className="w-full px-4 py-2.5 bg-navy-950/80 border border-slate-700/70 focus:border-amber-500 rounded-xl text-center text-lg tracking-widest font-mono text-slate-100 placeholder-slate-600 focus:outline-none"
-              />
-            </div>
-
-            {/* Email OTP */}
-            <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <label className="text-xs font-medium text-slate-300 flex items-center gap-1.5">
-                  <Mail className="w-3.5 h-3.5 text-amber-400" />
-                  Email OTP sent to {email}
-                </label>
-                {previewCode?.email && (
-                  <span className="text-[10px] text-emerald-400 font-mono bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">
-                    OTP: {previewCode.email}
-                  </span>
-                )}
-              </div>
-              <input
-                id="input-email-otp"
-                type="text"
-                maxLength={6}
-                value={emailOtp}
-                onChange={(e) => setEmailOtp(e.target.value.replace(/\D/g, ""))}
-                placeholder="Enter Email OTP"
-                className="w-full px-4 py-2.5 bg-navy-950/80 border border-slate-700/70 focus:border-amber-500 rounded-xl text-center text-lg tracking-widest font-mono text-slate-100 placeholder-slate-600 focus:outline-none"
-              />
-            </div>
-
-            {/* Resend & Fast Fill Actions */}
-            <div className="flex items-center justify-between gap-2 pt-1">
-              <button
-                type="button"
-                disabled={resendTimer > 0 || isSending}
-                onClick={() => handleSendOtp()}
-                className="text-[11px] text-amber-400 hover:underline flex items-center gap-1 disabled:text-slate-500 cursor-pointer"
-              >
-                <Send className="w-3 h-3" />
-                <span>{resendTimer > 0 ? `Resend OTP in ${resendTimer}s` : "Resend SMS OTP"}</span>
-              </button>
-
-              {previewCode?.mobile && (
-                <button
-                  type="button"
-                  onClick={handleAutoFillOtp}
-                  className="px-2.5 py-1 rounded-lg bg-navy-800 border border-slate-700 hover:border-amber-500/40 text-amber-300 text-[11px] font-medium flex items-center gap-1 cursor-pointer transition-colors"
-                >
-                  <Sparkles className="w-3 h-3 text-amber-400" />
-                  <span>Auto-Fill</span>
-                </button>
-              )}
-            </div>
+          <div className="p-4 rounded-2xl navy-card space-y-3">
+            <div className="flex items-center gap-2 text-emerald-300 text-xs"><CheckCircle2 className="w-4 h-4" />{successMsg || "OTP sent."}</div>
+            <label className="block text-xs font-semibold text-slate-300">Mobile OTP
+              <input value={mobileOtp} onChange={(e) => setMobileOtp(e.target.value.replace(/\D/g, "").slice(0, 6))} inputMode="numeric" placeholder="Enter OTP" className="mt-1.5 w-full px-4 py-3 rounded-xl bg-navy-950 border border-slate-700 text-center tracking-[0.35em] text-slate-100" />
+            </label>
           </div>
-
-          {errorMsg && (
-            <p className="text-xs text-rose-400 bg-rose-500/10 border border-rose-500/20 p-2.5 rounded-xl">
-              {errorMsg}
-            </p>
-          )}
-
-          <button
-            id="btn-verify-account"
-            type="button"
-            disabled={isVerifying}
-            onClick={handleVerifyAndRegister}
-            className="w-full py-3.5 px-6 rounded-xl bg-gold-gradient text-navy-950 font-bold text-sm shadow-lg shadow-amber-500/25 hover:brightness-110 active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60"
-          >
-            {isVerifying ? (
-              <>
-                <RefreshCw className="w-4 h-4 animate-spin text-navy-950" />
-                <span>Verifying SMS OTP & Creating Account...</span>
-              </>
-            ) : (
-              <>
-                <CheckCircle2 className="w-4 h-4 stroke-[2.5]" />
-                <span>Verify OTP & Proceed to KYC</span>
-              </>
-            )}
+          <button onClick={handleVerify} disabled={isVerifying} className="w-full py-3.5 rounded-xl bg-gold-gradient text-navy-950 font-bold text-sm disabled:opacity-60">
+            {isVerifying ? "Verifying..." : "Verify & Continue"}
           </button>
+          <button onClick={() => { setOtpSent(false); setMobileOtp(""); }} className="w-full text-xs text-slate-400 hover:text-amber-300">Change details</button>
         </div>
       )}
+
+      {errorMsg && <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-xs text-rose-300">{errorMsg}</div>}
     </div>
   );
 };
-
