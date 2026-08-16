@@ -10,10 +10,10 @@ export default async function handler(req: any, res: any) {
 
   return res.status(200).json({
     isConfigured,
-    activeProvider: isConfigured ? "Fast2SMS" : "Unavailable",
+    activeProvider: isConfigured ? "Fast2SMS" : "TestMode",
     senderId: process.env.SMS_SENDER_ID || "SAVRDH",
     message: isConfigured
       ? "Fast2SMS live OTP gateway is configured"
-      : "Add FAST2SMS_API_KEY and FAST2SMS_OTP_ID in Vercel Environment Variables",
+      : "Preview test OTP mode is active. Use OTP 9999 until DLT and FAST2SMS_OTP_ID are configured.",
   });
 }
