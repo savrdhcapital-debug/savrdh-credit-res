@@ -6,17 +6,25 @@ export default async function handler(req: any, res: any) {
 
   const apiKey = process.env.FAST2SMS_API_KEY || process.env.SMS_API_KEY;
   const otpId = process.env.FAST2SMS_OTP_ID;
-
-  if (!apiKey || !otpId) {
-    return res.status(503).json({
-      success: false,
-      message: "Live SMS gateway is not configured. Add FAST2SMS_API_KEY and FAST2SMS_OTP_ID in Vercel Environment Variables.",
-    });
-  }
-
   const mobile = String(req.body?.mobile || "").replace(/\D/g, "").slice(-10);
+
   if (mobile.length !== 10) {
     return res.status(400).json({ success: false, message: "Valid 10-digit mobile number is required" });
+  }
+
+  // Until DLT + Smart OTP template are approved, keep the preview deployment testable.
+  // No real SMS is sent in this mode. Production automatically switches to Fast2SMS
+  // as soon as both required secrets are configured.
+  if (!apiKey || !otpId) {
+    return res.status(200).json({
+      success: true,
+      message: "Test OTP mode active. Use OTP 9999 to continue.",
+      mobile,
+      expiresInSeconds: 600,
+      isLiveSmsSent: false,
+      provider: "TestMode",
+      previewMobileOtp: "9999",
+    });
   }
 
   try {
