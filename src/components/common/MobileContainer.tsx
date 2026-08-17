@@ -7,6 +7,7 @@ interface MobileContainerProps {
   currentStep: AppStep;
   onResetFlow: () => void;
   onJumpToStep?: (step: AppStep) => void;
+  onOpenAdminCRM?: () => void;
 }
 
 export const MobileContainer: React.FC<MobileContainerProps> = ({
@@ -14,6 +15,7 @@ export const MobileContainer: React.FC<MobileContainerProps> = ({
   currentStep,
   onResetFlow,
   onJumpToStep,
+  onOpenAdminCRM,
 }) => {
   const [deviceFrame, setDeviceFrame] = useState(true);
 
@@ -23,13 +25,24 @@ export const MobileContainer: React.FC<MobileContainerProps> = ({
       <div className="hidden sm:flex items-center justify-between w-full max-w-lg mb-3 px-4 py-2 bg-navy-950/80 border border-slate-800/80 rounded-2xl text-xs backdrop-blur-md">
         <div className="flex items-center gap-2">
           <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-          <span className="font-semibold text-slate-300">Savrdh Customer App</span>
+          <span className="font-semibold text-slate-300">Savrdh App</span>
           <span className="text-[10px] px-2 py-0.5 rounded bg-amber-500/10 text-amber-300 border border-amber-500/20 font-mono">
             {currentStep}
           </span>
         </div>
 
         <div className="flex items-center gap-2">
+          {onOpenAdminCRM && (
+            <button
+              onClick={onOpenAdminCRM}
+              className="py-1 px-2.5 rounded-lg bg-amber-500/15 border border-amber-500/30 hover:bg-amber-500/25 text-amber-300 font-semibold text-[11px] flex items-center gap-1.5 transition-colors"
+              title="Open Staff & Advocate CRM Login"
+            >
+              <ShieldCheck className="w-3.5 h-3.5" />
+              <span>CRM Login</span>
+            </button>
+          )}
+
           <button
             onClick={() => setDeviceFrame(!deviceFrame)}
             className="p-1.5 rounded-lg bg-navy-900 border border-slate-700 hover:border-amber-500/40 text-slate-400 hover:text-amber-300 transition-colors"

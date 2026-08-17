@@ -32,7 +32,8 @@ import {
   Camera,
   ExternalLink,
   SlidersHorizontal,
-  LogOut
+  LogOut,
+  Briefcase,
 } from "lucide-react";
 import {
   UserProfile,
@@ -71,6 +72,7 @@ interface DashboardProps {
   onOpenReportModal: (type: "CREDIT_REPORT" | "INVOICE" | "RESOLUTION_REPORT" | "NDC_CERTIFICATE" | "LETTER_OF_AUTHORITY") => void;
   onOpenSecurityModal: () => void;
   onLogout: () => void;
+  onOpenAdminCRM?: () => void;
 }
 
 export const CustomerDashboard: React.FC<DashboardProps> = ({
@@ -85,6 +87,7 @@ export const CustomerDashboard: React.FC<DashboardProps> = ({
   onOpenReportModal,
   onOpenSecurityModal,
   onLogout,
+  onOpenAdminCRM,
 }) => {
   const [activeTab, setActiveTab] = useState<"overview" | "timeline" | "messages" | "documents" | "reports" | "notifications">("overview");
   
@@ -291,6 +294,17 @@ export const CustomerDashboard: React.FC<DashboardProps> = ({
               </span>
             )}
           </button>
+
+          {/* CRM Portal Link */}
+          {onOpenAdminCRM && (
+            <button
+              onClick={onOpenAdminCRM}
+              className="p-2 rounded-xl bg-amber-500/15 border border-amber-500/30 hover:bg-amber-500/25 text-amber-300 cursor-pointer"
+              title="Staff Admin CRM Portal"
+            >
+              <Briefcase className="w-4 h-4 text-amber-400" />
+            </button>
+          )}
 
           {/* Security / Settings Button */}
           <button

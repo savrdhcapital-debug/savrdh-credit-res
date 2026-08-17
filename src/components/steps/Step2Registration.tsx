@@ -1,5 +1,22 @@
 import React, { useState, useEffect } from "react";
-import { User, Phone, Mail, ArrowRight, ShieldCheck, CheckCircle2, KeyRound, RefreshCw, Send, Radio, Lock } from "lucide-react";
+import {
+  User,
+  Phone,
+  Mail,
+  ArrowRight,
+  ShieldCheck,
+  CheckCircle2,
+  KeyRound,
+  RefreshCw,
+  Send,
+  Radio,
+  Lock,
+  Sparkles,
+  Zap,
+  Info,
+  AlertCircle,
+  HelpCircle,
+} from "lucide-react";
 import { UserProfile } from "../../types";
 import { sendAuthOtp, verifyAuthOtp, getSmsConfigStatus } from "../../services/api";
 
@@ -21,7 +38,19 @@ export const Step2Registration: React.FC<Step2Props> = ({ onComplete, initialPro
   const [errorMsg, setErrorMsg] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
   const [resendTimer, setResendTimer] = useState(0);
-  const [smsGatewayStatus, setSmsGatewayStatus] = useState<{ isConfigured: boolean; activeProvider: string; message: string } | null>(null);
+  const [debugOtp, setDebugOtp] = useState<string>("9999");
+  const [deliveryInfo, setDeliveryInfo] = useState<{
+    isLiveSms?: boolean;
+    isLiveEmail?: boolean;
+    provider?: string;
+    smsError?: string;
+  } | null>(null);
+
+  const [smsGatewayStatus, setSmsGatewayStatus] = useState<{
+    isConfigured: boolean;
+    activeProvider: string;
+    message: string;
+  } | null>(null);
 
   useEffect(() => {
     getSmsConfigStatus().then(setSmsGatewayStatus).catch(() => null);
@@ -66,6 +95,14 @@ export const Step2Registration: React.FC<Step2Props> = ({ onComplete, initialPro
       if (res.success) {
         setOtpSent(true);
         setResendTimer(60);
+        const code = res.debugOtp || res.previewMobileOtp || "9999";
+        setDebugOtp(code);
+        setDeliveryInfo({
+          isLiveSms: res.isLiveSmsSent,
+          isLiveEmail: res.isLiveEmailSent,
+          provider: res.provider,
+          smsError: res.smsError,
+        });
         setSuccessMsg(res.message || `OTP dispatched to +91 ${mobile.slice(-10)} and ${email}`);
       } else {
         setErrorMsg(res.message || "Failed to dispatch OTP. Please check your credentials.");
@@ -75,6 +112,11 @@ export const Step2Registration: React.FC<Step2Props> = ({ onComplete, initialPro
     } finally {
       setIsSending(false);
     }
+  };
+
+  const handleQuickFill = (code: string) => {
+    setMobileOtp(code);
+    setErrorMsg("");
   };
 
   const handleVerifyAndRegister = async () => {
@@ -91,6 +133,8 @@ export const Step2Registration: React.FC<Step2Props> = ({ onComplete, initialPro
         mobile: mobile.trim(),
         mobileOtp: mobileOtp.trim(),
         emailOtp: emailOtp.trim() || undefined,
+        fullName: fullName.trim(),
+        email: email.trim(),
       });
 
       if (res.success) {
@@ -105,7 +149,7 @@ export const Step2Registration: React.FC<Step2Props> = ({ onComplete, initialPro
         };
         onComplete(profile);
       } else {
-        setErrorMsg(res.message || "Invalid OTP entered. Please try again.");
+        setErrorMsg(res.message || "Invalid OTP entered. Please try again or use 9999.");
       }
     } catch (err: any) {
       setErrorMsg(err.message || "OTP verification failed. Please check the code.");
@@ -131,10 +175,10 @@ export const Step2Registration: React.FC<Step2Props> = ({ onComplete, initialPro
           <div className="mt-2.5 flex items-center justify-between px-2.5 py-1.5 rounded-lg bg-navy-950/90 border border-slate-800 text-[10px]">
             <span className="flex items-center gap-1.5 text-slate-300">
               <Radio className="w-3 h-3 text-emerald-400 animate-pulse" />
-              <span>Gateway: <strong className="text-slate-200">{smsGatewayStatus.activeProvider}</strong></span>
+              <span>SMS Gateway: <strong className="text-slate-200">{smsGatewayStatus.activeProvider}</strong></span>
             </span>
             <span className="font-mono text-[9px] px-1.5 py-0.2 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-              LIVE SMS ACTIVE
+              LIVE GATEWAY CONNECTED
             </span>
           </div>
         )}
@@ -258,12 +302,12 @@ export const Step2Registration: React.FC<Step2Props> = ({ onComplete, initialPro
               </div>
             )}
 
-            {/* Mobile OTP */}
+            {/* Mobile OTP input */}
             <div>
               <div className="flex items-center justify-between mb-1.5">
                 <label className="text-xs font-medium text-slate-300 flex items-center gap-1.5">
                   <Phone className="w-3.5 h-3.5 text-amber-400" />
-                  Verification Code sent to +91 {mobile} & {email}
+                  <span>Verification Code (+91 {mobile})</span>
                 </label>
               </div>
               <input
@@ -273,8 +317,58 @@ export const Step2Registration: React.FC<Step2Props> = ({ onComplete, initialPro
                 value={mobileOtp}
                 onChange={(e) => setMobileOtp(e.target.value.replace(/\D/g, ""))}
                 placeholder="Enter 4-digit OTP"
-                className="w-full px-4 py-3 bg-navy-950/80 border border-slate-700/70 focus:border-amber-500 rounded-xl text-center text-xl tracking-widest font-mono text-slate-100 placeholder-slate-600 focus:outline-none"
+                className="w-full px-4 py-3 bg-navy-950/80 border border-slate-700/70 focus:border-amber-500 rounded-xl text-center text-2xl tracking-widest font-mono font-bold text-amber-300 placeholder-slate-600 focus:outline-none"
               />
+            </div>
+
+            {/* Quick Auto-fill & Testing Master Passcode Box */}
+            <div className="p-3 rounded-xl bg-slate-900/90 border border-amber-500/30 space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-1.5 text-xs text-amber-300 font-semibold">
+                  <Zap className="w-3.5 h-3.5 text-amber-400" />
+                  <span>Instant Verification Code:</span>
+                  <span className="font-mono bg-amber-400/20 text-amber-200 px-1.5 py-0.5 rounded font-bold">
+                    {debugOtp || "9999"}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleQuickFill(debugOtp || "9999")}
+                  className="px-2.5 py-1 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-[11px] flex items-center gap-1 shadow transition-all cursor-pointer"
+                >
+                  <Sparkles className="w-3 h-3" />
+                  <span>1-Click Fill</span>
+                </button>
+              </div>
+
+              <div className="flex items-center justify-between text-[10px] text-slate-400 pt-1 border-t border-slate-800">
+                <span>Universal Master Passcodes: <strong className="text-slate-200">9999</strong>, <strong className="text-slate-200">1234</strong></span>
+                <button
+                  type="button"
+                  onClick={() => handleQuickFill("9999")}
+                  className="text-amber-400 hover:underline font-semibold"
+                >
+                  Use 9999
+                </button>
+              </div>
+            </div>
+
+            {/* Delivery channel diagnostic pills */}
+            <div className="grid grid-cols-2 gap-2 text-[10px]">
+              <div className="p-2 rounded-lg bg-slate-900 border border-slate-800">
+                <div className="text-slate-400 mb-0.5">Mobile SMS:</div>
+                <div className={deliveryInfo?.isLiveSms ? "text-emerald-400 font-semibold flex items-center gap-1" : "text-amber-400 flex items-center gap-1"}>
+                  <span className={`w-1.5 h-1.5 rounded-full ${deliveryInfo?.isLiveSms ? "bg-emerald-400" : "bg-amber-400"}`}></span>
+                  <span>{deliveryInfo?.isLiveSms ? "Live SMS Sent" : "Demo Simulation"}</span>
+                </div>
+              </div>
+              <div className="p-2 rounded-lg bg-slate-900 border border-slate-800">
+                <div className="text-slate-400 mb-0.5">Email Delivery:</div>
+                <div className={deliveryInfo?.isLiveEmail ? "text-emerald-400 font-semibold flex items-center gap-1" : "text-amber-400 flex items-center gap-1"}>
+                  <span className={`w-1.5 h-1.5 rounded-full ${deliveryInfo?.isLiveEmail ? "bg-emerald-400" : "bg-amber-400"}`}></span>
+                  <span>{deliveryInfo?.isLiveEmail ? "Live Email Sent" : "Email Simulator"}</span>
+                </div>
+              </div>
             </div>
 
             {/* Resend Actions */}

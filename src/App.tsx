@@ -40,6 +40,7 @@ import { SecuritySettingsModal } from "./components/modals/SecuritySettingsModal
 
 import { AdminCRMApp } from "./components/admin/AdminCRMApp";
 import { AdminLoginModal } from "./components/admin/AdminLoginModal";
+import { AdminLoginPage } from "./components/admin/AdminLoginPage";
 import { AdminUser } from "./types";
 import { ShieldCheck } from "lucide-react";
 
@@ -49,7 +50,15 @@ export default function App() {
 
   // Admin CRM State
   const [isAdminMode, setIsAdminMode] = useState<boolean>(() => {
-    return window.location.pathname.includes("admin") || window.location.search.includes("admin");
+    const search = window.location.search.toLowerCase();
+    const hash = window.location.hash.toLowerCase();
+    const pathname = window.location.pathname.toLowerCase();
+    return (
+      search.includes("admin") ||
+      search.includes("page=admin") ||
+      hash.includes("admin") ||
+      pathname.includes("admin")
+    );
   });
   const [isAdminLoginOpen, setIsAdminLoginOpen] = useState(false);
   const [adminUser, setAdminUser] = useState<AdminUser | null>(() => {
@@ -61,29 +70,45 @@ export default function App() {
     }
   });
 
-  // User & KYC State
+  // Listen to popstate / hashchange to support direct URL navigation to /?page=admin or #admin
+  useEffect(() => {
+    const handleUrlChange = () => {
+      const search = window.location.search.toLowerCase();
+      const hash = window.location.hash.toLowerCase();
+      const pathname = window.location.pathname.toLowerCase();
+      if (
+        search.includes("admin") ||
+        search.includes("page=admin") ||
+        hash.includes("admin") ||
+        pathname.includes("admin")
+      ) {
+        setIsAdminMode(true);
+      }
+    };
+
+    window.addEventListener("popstate", handleUrlChange);
+    window.addEventListener("hashchange", handleUrlChange);
+    return () => {
+      window.removeEventListener("popstate", handleUrlChange);
+      window.removeEventListener("hashchange", handleUrlChange);
+    };
+  }, []);
+
+  // User & KYC State (Clean initial state for real customer onboarding)
   const [userProfile, setUserProfile] = useState<UserProfile>({
-    fullName: "Rajeshwar Sharma",
-    mobile: "9820491823",
-    email: "rajeshwar.sharma@example.com",
+    fullName: "",
+    mobile: "",
+    email: "",
     isMobileVerified: false,
     isEmailVerified: false,
-    biometricEnabled: true,
+    biometricEnabled: false,
   });
 
   const [kycData, setKycData] = useState<KYCData>({
-    aadhaarNumber: "582948199283",
-    maskedAadhaar: "XXXX-XXXX-9283",
-    panNumber: "ABCDE1234F",
+    aadhaarNumber: "",
+    maskedAadhaar: "",
+    panNumber: "",
     isVerified: false,
-    fetchedProfile: {
-      name: "Rajeshwar Sharma",
-      dob: "14 Jun 1988",
-      gender: "Male",
-      fatherName: "Devendra Sharma",
-      address: "Flat 402, B-Wing, Royal Palms Residency, Aarey Colony, Goregaon East, Mumbai, Maharashtra - 400065",
-      photoUrl: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&auto=format&fit=crop&q=80",
-    },
   });
 
   // Credit Bureau & AI Diagnostic State
@@ -107,67 +132,14 @@ export default function App() {
     setCurrentStep("REGISTRATION");
   };
 
-  // Biometric Fast Unlock (Fast demo pass into dashboard or registration)
+  // Biometric Fast Unlock (Unlocks existing session or proceeds to registration)
   const handleBiometricLogin = () => {
     if (crmLead && paymentDetails) {
       setCurrentStep("DASHBOARD");
+    } else if (userProfile.fullName && userProfile.isMobileVerified) {
+      setCurrentStep("KYC");
     } else {
-      // Fast demo setup
-      const verifiedProfile: UserProfile = {
-        fullName: "Rajeshwar Sharma",
-        mobile: "9820491823",
-        email: "rajeshwar.sharma@example.com",
-        isMobileVerified: true,
-        isEmailVerified: true,
-        authToken: `jwt_svr_bio_${Date.now()}`,
-        biometricEnabled: true,
-      };
-      const verifiedKyc: KYCData = {
-        aadhaarNumber: "582948199283",
-        maskedAadhaar: "XXXX-XXXX-9283",
-        panNumber: "ABCDE1234F",
-        isVerified: true,
-        verifiedAt: new Date().toISOString(),
-        kycProvider: "UIDAI Biometric Auth",
-        fetchedProfile: kycData.fetchedProfile,
-      };
-      const pDetails: PaymentDetails = {
-        paymentId: `PAY_SVR_DEMO_${Date.now()}`,
-        orderId: `ORD_SVR_894102`,
-        amount: selectedPackage.price,
-        gstAmount: Math.round(selectedPackage.price * 0.18),
-        totalAmount: selectedPackage.price + Math.round(selectedPackage.price * 0.18),
-        paymentMethod: "UPI",
-        paymentStatus: "SUCCESS",
-        paidAt: new Date().toISOString(),
-        invoiceNumber: "SAV-INV-2026-8941",
-        selectedPackage: selectedPackage,
-      };
-      const mockLead: CRMLeadRecord = {
-        leadId: "SAV-LEAD-894102",
-        crmReferenceId: "CRM-SVR-894210",
-        customerName: "Rajeshwar Sharma",
-        mobile: "9820491823",
-        email: "rajeshwar.sharma@example.com",
-        aadhaarNumberMasked: "XXXX-XXXX-9283",
-        panNumber: "ABCDE1234F",
-        creditScore: 582,
-        totalDefaultAmount: 485000,
-        resolutionPackage: selectedPackage.title,
-        packageAmount: selectedPackage.price,
-        paymentId: pDetails.paymentId,
-        paymentStatus: "PAID_SUCCESSFUL",
-        paymentDate: new Date().toISOString(),
-        caseStatus: "Under Legal Review",
-        crmSyncStatus: "ROUTED_TO_ADVISOR",
-        syncedAt: new Date().toISOString(),
-      };
-
-      setUserProfile(verifiedProfile);
-      setKycData(verifiedKyc);
-      setPaymentDetails(pDetails);
-      setCrmLead(mockLead);
-      setCurrentStep("DASHBOARD");
+      setCurrentStep("REGISTRATION");
     }
   };
 
@@ -220,34 +192,61 @@ export default function App() {
   // Reset Flow
   const handleResetFlow = () => {
     setCurrentStep("SPLASH");
-    setUserProfile((prev) => ({ ...prev, isMobileVerified: false, isEmailVerified: false }));
-    setKycData((prev) => ({ ...prev, isVerified: false }));
+    setUserProfile({
+      fullName: "",
+      mobile: "",
+      email: "",
+      isMobileVerified: false,
+      isEmailVerified: false,
+      biometricEnabled: false,
+    });
+    setKycData({
+      aadhaarNumber: "",
+      maskedAadhaar: "",
+      panNumber: "",
+      isVerified: false,
+    });
     setPaymentDetails(null);
     setCrmLead(null);
   };
 
-  // If Admin Mode is active and admin is authenticated, render full-screen Admin CRM Portal
-  if (isAdminMode && adminUser) {
-    return (
-      <AdminCRMApp
-        adminUser={adminUser}
-        onLogout={() => {
-          localStorage.removeItem("SAVRDH_ADMIN_TOKEN");
-          localStorage.removeItem("SAVRDH_ADMIN_USER");
-          setAdminUser(null);
-          setIsAdminMode(false);
-        }}
-        onSwitchToCustomerApp={() => {
-          setIsAdminMode(false);
-        }}
-      />
-    );
+  // If Admin Mode is active:
+  if (isAdminMode) {
+    if (adminUser) {
+      return (
+        <AdminCRMApp
+          adminUser={adminUser}
+          onLogout={() => {
+            localStorage.removeItem("SAVRDH_ADMIN_TOKEN");
+            localStorage.removeItem("SAVRDH_ADMIN_USER");
+            setAdminUser(null);
+            setIsAdminMode(false);
+          }}
+          onSwitchToCustomerApp={() => {
+            setIsAdminMode(false);
+          }}
+        />
+      );
+    } else {
+      return (
+        <AdminLoginPage
+          onLoginSuccess={(admin) => {
+            setAdminUser(admin);
+            setIsAdminMode(true);
+          }}
+          onReturnToCustomerApp={() => {
+            setIsAdminMode(false);
+          }}
+        />
+      );
+    }
   }
 
   return (
     <MobileContainer
       currentStep={currentStep}
       onResetFlow={handleResetFlow}
+      onOpenAdminCRM={() => setIsAdminMode(true)}
     >
       {/* Top Stepper for linear onboarding (Steps 2-7) */}
       {currentStep !== "SPLASH" && currentStep !== "DASHBOARD" && (
@@ -259,6 +258,7 @@ export default function App() {
         <Step1SplashWelcome
           onGetStarted={handleGetStarted}
           onBiometricLogin={handleBiometricLogin}
+          onOpenAdminCRM={() => setIsAdminMode(true)}
         />
       )}
 
@@ -283,6 +283,7 @@ export default function App() {
       {currentStep === "CREDIT_REPORT" && (
         <Step4CreditReport
           kycData={kycData}
+          userProfile={userProfile}
           initialReport={creditReport}
           onProceedToAnalysis={handleProceedToAnalysis}
         />
@@ -345,6 +346,7 @@ export default function App() {
           onOpenReportModal={(type) => setActiveReportModal(type)}
           onOpenSecurityModal={() => setShowSecurityModal(true)}
           onLogout={handleResetFlow}
+          onOpenAdminCRM={() => setIsAdminMode(true)}
         />
       )}
 

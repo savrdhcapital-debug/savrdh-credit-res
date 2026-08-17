@@ -13,8 +13,11 @@ import {
   MapPin,
   Camera,
   FileCheck2,
+  Sparkles,
+  Scan,
 } from "lucide-react";
 import { KYCData, UserProfile } from "../../types";
+import { notifyKycCompletedApi, ocrKycDocumentApi } from "../../services/api";
 
 interface Step3Props {
   userProfile: UserProfile;
@@ -52,6 +55,12 @@ export const Step3DigitalKYC: React.FC<Step3Props> = ({ userProfile, onComplete,
       : null
   );
 
+  // OCR Processing States
+  const [isScanningPan, setIsScanningPan] = useState(false);
+  const [isScanningAadhaarFront, setIsScanningAadhaarFront] = useState(false);
+  const [isScanningAadhaarBack, setIsScanningAadhaarBack] = useState(false);
+  const [ocrSuccessMsg, setOcrSuccessMsg] = useState("");
+
   const [stage, setStage] = useState<"INPUT" | "VERIFIED">(
     initialKYC?.isVerified ? "VERIFIED" : "INPUT"
   );
@@ -71,7 +80,7 @@ export const Step3DigitalKYC: React.FC<Step3Props> = ({ userProfile, onComplete,
     return parts.join(" ");
   };
 
-  const handleDocUpload = (
+  const handleDocUpload = async (
     e: React.ChangeEvent<HTMLInputElement>,
     type: "PAN" | "AADHAAR_FRONT" | "AADHAAR_BACK"
   ) => {
@@ -80,14 +89,72 @@ export const Step3DigitalKYC: React.FC<Step3Props> = ({ userProfile, onComplete,
 
     const sizeStr = `${(file.size / (1024 * 1024)).toFixed(1)} MB`;
     const reader = new FileReader();
-    reader.onload = () => {
+    reader.onload = async () => {
       const url = typeof reader.result === "string" ? reader.result : "";
       if (type === "PAN") {
         setPanFile({ name: file.name, url, size: sizeStr });
+        // Trigger AI OCR for PAN
+        setIsScanningPan(true);
+        try {
+          const res = await ocrKycDocumentApi({
+            docType: "PAN",
+            fileDataUrl: url,
+            fileName: file.name,
+          });
+          if (res.success && res.data) {
+            if (res.data.panNumber) setPanNumber(res.data.panNumber);
+            if (res.data.name && (!fullName || fullName === "Customer")) setFullName(res.data.name);
+            if (res.data.dob && !dob) setDob(res.data.dob);
+            if (res.data.fatherName && !fatherName) setFatherName(res.data.fatherName);
+            setOcrSuccessMsg("PAN Card scanned successfully! Name & PAN extracted.");
+          }
+        } catch (err) {
+          console.warn("OCR Error on PAN:", err);
+        } finally {
+          setIsScanningPan(false);
+        }
       } else if (type === "AADHAAR_FRONT") {
         setAadhaarFrontFile({ name: file.name, url, size: sizeStr });
+        // Trigger AI OCR for Aadhaar Front
+        setIsScanningAadhaarFront(true);
+        try {
+          const res = await ocrKycDocumentApi({
+            docType: "AADHAAR_FRONT",
+            fileDataUrl: url,
+            fileName: file.name,
+          });
+          if (res.success && res.data) {
+            if (res.data.aadhaarNumber) setAadhaarRaw(res.data.aadhaarNumber);
+            if (res.data.name && (!fullName || fullName === "Customer")) setFullName(res.data.name);
+            if (res.data.dob && !dob) setDob(res.data.dob);
+            if (res.data.gender) setGender(res.data.gender === "Female" ? "Female" : "Male");
+            setOcrSuccessMsg("Aadhaar Card (Front) scanned! UID & Name extracted.");
+          }
+        } catch (err) {
+          console.warn("OCR Error on Aadhaar Front:", err);
+        } finally {
+          setIsScanningAadhaarFront(false);
+        }
       } else if (type === "AADHAAR_BACK") {
         setAadhaarBackFile({ name: file.name, url, size: sizeStr });
+        // Trigger AI OCR for Aadhaar Back
+        setIsScanningAadhaarBack(true);
+        try {
+          const res = await ocrKycDocumentApi({
+            docType: "AADHAAR_BACK",
+            fileDataUrl: url,
+            fileName: file.name,
+          });
+          if (res.success && res.data) {
+            if (res.data.address) setAddress(res.data.address);
+            if (res.data.careOf && !fatherName) setFatherName(res.data.careOf);
+            setOcrSuccessMsg("Aadhaar Card (Back) scanned! Address auto-populated.");
+          }
+        } catch (err) {
+          console.warn("OCR Error on Aadhaar Back:", err);
+        } finally {
+          setIsScanningAadhaarBack(false);
+        }
       }
     };
     reader.readAsDataURL(file);
@@ -152,6 +219,17 @@ export const Step3DigitalKYC: React.FC<Step3Props> = ({ userProfile, onComplete,
         photoUrl: aadhaarFrontFile?.url || "",
       },
     };
+
+    // Dispatch KYC Notification Alert to Savrdh Admin
+    notifyKycCompletedApi({
+      customerName: fullName || userProfile.fullName || "Customer",
+      mobile: userProfile.mobile,
+      email: userProfile.email,
+      panNumber: panNumber.trim().toUpperCase(),
+      maskedAadhaar: `XXXX-XXXX-${aadhaarRaw.slice(-4)}`,
+      address: address || undefined,
+    }).catch((err) => console.warn("[KYC Notify Error]:", err));
+
     onComplete(kycResult);
   };
 
@@ -298,9 +376,22 @@ export const Step3DigitalKYC: React.FC<Step3Props> = ({ userProfile, onComplete,
 
             {/* Document Upload Sections */}
             <div className="pt-2 border-t border-slate-800 space-y-3">
-              <span className="text-xs font-bold text-slate-200 block">
-                Required KYC Document Uploads:
-              </span>
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-slate-200 block">
+                  Required KYC Document Uploads:
+                </span>
+                <span className="text-[10px] text-amber-400 flex items-center gap-1 font-semibold">
+                  <Sparkles className="w-3 h-3 text-amber-400" />
+                  AI OCR Enabled
+                </span>
+              </div>
+
+              {ocrSuccessMsg && (
+                <div className="p-2 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-[11px] flex items-center gap-1.5">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
+                  <span>{ocrSuccessMsg}</span>
+                </div>
+              )}
 
               {/* 1. PAN Card Upload */}
               <div className="p-3 rounded-xl bg-navy-950/70 border border-slate-800">
@@ -312,9 +403,15 @@ export const Step3DigitalKYC: React.FC<Step3Props> = ({ userProfile, onComplete,
                       <p className="text-[10px] text-slate-400">Clear Photo or PDF file</p>
                     </div>
                   </div>
-                  {panFile ? (
+                  {isScanningPan ? (
+                    <div className="flex items-center gap-1.5 text-[11px] text-amber-400 bg-amber-500/10 px-2.5 py-1 rounded-lg border border-amber-500/20 font-semibold">
+                      <RefreshCw className="w-3 h-3 animate-spin" />
+                      <span>AI Reading PAN...</span>
+                    </div>
+                  ) : panFile ? (
                     <div className="flex items-center gap-2">
-                      <span className="text-[10px] text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded font-mono truncate max-w-[120px]">
+                      <span className="text-[10px] text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded font-mono truncate max-w-[120px] flex items-center gap-1">
+                        <CheckCircle2 className="w-2.5 h-2.5" />
                         {panFile.name}
                       </span>
                       <button
@@ -348,9 +445,15 @@ export const Step3DigitalKYC: React.FC<Step3Props> = ({ userProfile, onComplete,
                       <p className="text-[10px] text-slate-400">Photo with Name & Photo</p>
                     </div>
                   </div>
-                  {aadhaarFrontFile ? (
+                  {isScanningAadhaarFront ? (
+                    <div className="flex items-center gap-1.5 text-[11px] text-amber-400 bg-amber-500/10 px-2.5 py-1 rounded-lg border border-amber-500/20 font-semibold">
+                      <RefreshCw className="w-3 h-3 animate-spin" />
+                      <span>AI Reading UID...</span>
+                    </div>
+                  ) : aadhaarFrontFile ? (
                     <div className="flex items-center gap-2">
-                      <span className="text-[10px] text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded font-mono truncate max-w-[120px]">
+                      <span className="text-[10px] text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded font-mono truncate max-w-[120px] flex items-center gap-1">
+                        <CheckCircle2 className="w-2.5 h-2.5" />
                         {aadhaarFrontFile.name}
                       </span>
                       <button
@@ -384,9 +487,15 @@ export const Step3DigitalKYC: React.FC<Step3Props> = ({ userProfile, onComplete,
                       <p className="text-[10px] text-slate-400">Address side</p>
                     </div>
                   </div>
-                  {aadhaarBackFile ? (
+                  {isScanningAadhaarBack ? (
+                    <div className="flex items-center gap-1.5 text-[11px] text-amber-400 bg-amber-500/10 px-2.5 py-1 rounded-lg border border-amber-500/20 font-semibold">
+                      <RefreshCw className="w-3 h-3 animate-spin" />
+                      <span>AI Reading Address...</span>
+                    </div>
+                  ) : aadhaarBackFile ? (
                     <div className="flex items-center gap-2">
-                      <span className="text-[10px] text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded font-mono truncate max-w-[120px]">
+                      <span className="text-[10px] text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded font-mono truncate max-w-[120px] flex items-center gap-1">
+                        <CheckCircle2 className="w-2.5 h-2.5" />
                         {aadhaarBackFile.name}
                       </span>
                       <button

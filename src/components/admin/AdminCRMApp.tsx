@@ -24,6 +24,8 @@ import {
   Sparkles,
   ArrowUpRight,
   ArrowLeft,
+  AlertTriangle,
+  Key,
 } from "lucide-react";
 import { AdminUser, AdminLeadDetail, AdminStats } from "../../types";
 import {
@@ -31,9 +33,11 @@ import {
   fetchAdminLeadsApi,
   fetchAdminLeadDocketApi,
   deleteLeadApi,
+  fetchEmailStatusApi,
 } from "../../services/api";
 import { LeadDocketModal } from "./LeadDocketModal";
 import { CreateManualLeadModal } from "./CreateManualLeadModal";
+import { EmailMonitoringModal } from "./EmailMonitoringModal";
 
 interface AdminCRMAppProps {
   adminUser: AdminUser;
@@ -49,21 +53,24 @@ export const AdminCRMApp: React.FC<AdminCRMAppProps> = ({
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [leads, setLeads] = useState<AdminLeadDetail[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isEmailConfigured, setIsEmailConfigured] = useState<boolean>(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedStatusFilter, setSelectedStatusFilter] = useState("ALL");
   const [selectedLeadForDocket, setSelectedLeadForDocket] = useState<AdminLeadDetail | null>(null);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
   const [feedbackToast, setFeedbackToast] = useState<string | null>(null);
 
   const loadData = async () => {
     setIsLoading(true);
     try {
-      const [statsRes, leadsRes] = await Promise.all([
+      const [statsRes, leadsRes, emailStatusRes] = await Promise.all([
         fetchAdminStatsApi(),
         fetchAdminLeadsApi({
           q: searchQuery || undefined,
           status: selectedStatusFilter !== "ALL" ? selectedStatusFilter : undefined,
         }),
+        fetchEmailStatusApi(),
       ]);
 
       if (statsRes.success && statsRes.stats) {
@@ -71,6 +78,9 @@ export const AdminCRMApp: React.FC<AdminCRMAppProps> = ({
       }
       if (leadsRes.success && leadsRes.leads) {
         setLeads(leadsRes.leads);
+      }
+      if (emailStatusRes) {
+        setIsEmailConfigured(!!emailStatusRes.isConfigured);
       }
     } catch (err) {
       console.error("Error loading admin data:", err);
@@ -181,7 +191,21 @@ export const AdminCRMApp: React.FC<AdminCRMAppProps> = ({
         </div>
 
         {/* Right Admin Controls */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2.5">
+          <button
+            onClick={() => setIsEmailModalOpen(true)}
+            className={`flex items-center gap-1.5 py-1.5 px-3 rounded-xl border text-xs font-semibold transition-colors ${
+              isEmailConfigured
+                ? "bg-emerald-500/10 hover:bg-emerald-500/20 border-emerald-500/40 text-emerald-300"
+                : "bg-amber-500/15 hover:bg-amber-500/25 border-amber-500/40 text-amber-300"
+            }`}
+            title="Email Engine & SMTP Audit Logs"
+          >
+            <Mail className="w-3.5 h-3.5 text-amber-400" />
+            <span className="hidden sm:inline">{isEmailConfigured ? "Email Engine (Live)" : "Email (Setup Required)"}</span>
+            <span className={`w-2 h-2 rounded-full ${isEmailConfigured ? "bg-emerald-400 animate-pulse" : "bg-amber-400 animate-ping"}`}></span>
+          </button>
+
           <button
             onClick={onSwitchToCustomerApp}
             className="hidden sm:flex items-center gap-1.5 py-1.5 px-3 rounded-xl bg-navy-900 hover:bg-navy-800 border border-slate-700 text-xs text-slate-200 font-semibold transition-colors"
@@ -210,6 +234,33 @@ export const AdminCRMApp: React.FC<AdminCRMAppProps> = ({
 
       {/* Main Content Area */}
       <main className="flex-1 p-4 lg:p-8 max-w-7xl w-full mx-auto space-y-6">
+        {/* Warning Banner if SMTP is not live */}
+        {!isEmailConfigured && (
+          <div className="p-4 rounded-2xl bg-gradient-to-r from-amber-950/70 via-navy-950 to-amber-950/70 border border-amber-500/50 text-xs flex flex-wrap items-center justify-between gap-3 shadow-xl shadow-amber-950/30 animate-fadeIn">
+            <div className="flex items-start sm:items-center gap-3">
+              <div className="p-2 rounded-xl bg-amber-500/20 text-amber-400 flex-shrink-0">
+                <AlertTriangle className="w-5 h-5" />
+              </div>
+              <div>
+                <strong className="text-white text-sm font-bold block">
+                  Customer Email Delivery Notice: Live Mailbox Password Not Connected
+                </strong>
+                <p className="text-slate-300 mt-0.5">
+                  Automated emails (LOA, Invoice, OTP, Case Updates) are currently running in <span className="text-amber-300 font-bold">Simulated Audit Mode</span>. Enter your mailbox password for <span className="font-mono text-amber-300 font-bold">support@savrdhfinancialservices.com</span> to deliver real emails to customer inboxes.
+                </p>
+              </div>
+            </div>
+
+            <button
+              onClick={() => setIsEmailModalOpen(true)}
+              className="py-2 px-4 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-navy-950 font-bold text-xs shadow-lg shadow-amber-500/20 flex items-center gap-2 transition-all cursor-pointer"
+            >
+              <Key className="w-4 h-4" />
+              <span>Connect Mailbox Password</span>
+            </button>
+          </div>
+        )}
+
         {/* Toast Notification */}
         {feedbackToast && (
           <div className="p-3.5 rounded-2xl bg-emerald-950 border border-emerald-600/50 text-emerald-300 text-xs flex items-center justify-between shadow-lg shadow-emerald-950/40 animate-fadeIn">
@@ -574,6 +625,13 @@ export const AdminCRMApp: React.FC<AdminCRMAppProps> = ({
             loadData();
             setTimeout(() => setFeedbackToast(null), 3000);
           }}
+        />
+      )}
+
+      {isEmailModalOpen && (
+        <EmailMonitoringModal
+          isOpen={true}
+          onClose={() => setIsEmailModalOpen(false)}
         />
       )}
     </div>

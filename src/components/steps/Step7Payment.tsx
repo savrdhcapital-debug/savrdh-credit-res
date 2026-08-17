@@ -37,7 +37,7 @@ export const Step7Payment: React.FC<Step7Props> = ({
   onViewConsent,
 }) => {
   const [paymentMode, setPaymentMode] = useState<"RAZORPAY_CHECKOUT" | "UPI_DIRECT" | "CARD_DIRECT">("RAZORPAY_CHECKOUT");
-  const [upiId, setUpiId] = useState("rajeshwar@okhdfcbank");
+  const [upiId, setUpiId] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
   const [paymentComplete, setPaymentComplete] = useState(false);
   const [completedPayment, setCompletedPayment] = useState<PaymentDetails | null>(null);

@@ -68,11 +68,26 @@ export interface CreditAccountItem {
 }
 
 export interface CreditBureauReport {
-  bureauName: "TransUnion CIBIL" | "Experian" | "Equifax" | "CRIF High Mark";
+  bureauName: "TransUnion CIBIL" | "Experian" | "Equifax" | "CRIF High Mark" | string;
   score: number;
   scoreBand: "Poor" | "Fair" | "Good" | "Excellent";
   reportDate: string;
   controlNumber: string;
+  uploadedFileName?: string;
+  rawFileDataUrl?: string;
+  originalReportSource?: "FILE_UPLOAD" | "LIVE_BUREAU_API" | "EXPERIAN_PULL" | "CIBIL_PULL" | "EQUIFAX_PULL" | "CRIF_PULL" | string;
+  verifiedProfile?: {
+    matchedName: string;
+    matchedDob?: string;
+    matchedPan: string;
+    matchedGender?: string;
+    matchedAddress?: string;
+    isNameVerified: boolean;
+    isDobVerified: boolean;
+    isPanVerified: boolean;
+    verificationScore: number;
+    verificationNotes?: string;
+  };
   summary: {
     activeLoansCount: number;
     activeCreditCardsCount: number;

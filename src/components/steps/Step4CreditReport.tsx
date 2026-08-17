@@ -19,19 +19,26 @@ import {
   Lock,
   Receipt,
   FileCheck2,
-  AlertCircle
+  AlertCircle,
+  Download,
+  Printer,
+  ExternalLink,
+  Eye
 } from "lucide-react";
-import { CreditBureauReport, KYCData } from "../../types";
+import { CreditBureauReport, KYCData, UserProfile } from "../../types";
 import { createCibilOrderApi, verifyCibilPaymentApi, parseCibilReportApi } from "../../services/api";
+import { BureauDocketModal } from "../common/BureauDocketModal";
 
 interface Step4Props {
   kycData: KYCData;
+  userProfile?: UserProfile;
   onProceedToAnalysis: (report: CreditBureauReport) => void;
   initialReport?: CreditBureauReport;
 }
 
 export const Step4CreditReport: React.FC<Step4Props> = ({
   kycData,
+  userProfile,
   onProceedToAnalysis,
   initialReport,
 }) => {
@@ -53,14 +60,15 @@ export const Step4CreditReport: React.FC<Step4Props> = ({
   const [isParsingReport, setIsParsingReport] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
 
-  // Manual fallback inputs
-  const [manualScore, setManualScore] = useState("582");
-  const [manualOverdue, setManualOverdue] = useState("485000");
+  // Manual fallback inputs (Clean state)
+  const [manualScore, setManualScore] = useState("");
+  const [manualOverdue, setManualOverdue] = useState("");
 
   // Loaded Credit Report
   const [report, setReport] = useState<CreditBureauReport | null>(initialReport || null);
   const [expandedAccount, setExpandedAccount] = useState<string | null>("acc-cibil-1");
   const [activeTab, setActiveTab] = useState<"ALL" | "DEFAULTS" | "WRITTEN_OFF" | "SETTLED">("DEFAULTS");
+  const [isDocketModalOpen, setIsDocketModalOpen] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -69,11 +77,15 @@ export const Step4CreditReport: React.FC<Step4Props> = ({
     setIsPayingFee(true);
     setErrorMsg("");
 
+    const custName = kycData.fetchedProfile?.name || userProfile?.fullName || "Customer";
+    const custEmail = userProfile?.email || "support@savrdhfinancialservices.com";
+    const custMobile = userProfile?.mobile || "9876543210";
+
     try {
       const orderRes = await createCibilOrderApi({
-        customerName: kycData.fetchedProfile?.name || "Customer",
-        customerEmail: "support@savrdhfinancialservices.com",
-        customerMobile: "9876543210",
+        customerName: custName,
+        customerEmail: custEmail,
+        customerMobile: custMobile,
         panNumber: kycData.panNumber,
       });
 
@@ -87,8 +99,9 @@ export const Step4CreditReport: React.FC<Step4Props> = ({
           description: "CIBIL Report Extraction & Deep Diagnostic Audit Fee",
           order_id: orderRes.order?.id,
           prefill: {
-            name: kycData.fetchedProfile?.name || "Customer",
-            email: "support@savrdhfinancialservices.com",
+            name: custName,
+            email: custEmail,
+            contact: custMobile,
           },
           theme: { color: "#D4AF37" },
           handler: async (response: any) => {
@@ -96,9 +109,9 @@ export const Step4CreditReport: React.FC<Step4Props> = ({
               razorpay_order_id: response.razorpay_order_id,
               razorpay_payment_id: response.razorpay_payment_id,
               razorpay_signature: response.razorpay_signature,
-              customerName: kycData.fetchedProfile?.name || "Customer",
-              customerEmail: "support@savrdhfinancialservices.com",
-              customerMobile: "9876543210",
+              customerName: custName,
+              customerEmail: custEmail,
+              customerMobile: custMobile,
               panNumber: kycData.panNumber,
               paymentMethod: selectedPayMethod,
             });
@@ -116,9 +129,9 @@ export const Step4CreditReport: React.FC<Step4Props> = ({
         const verifyRes = await verifyCibilPaymentApi({
           razorpay_order_id: orderRes.order?.id || `order_cibil_${Date.now()}`,
           razorpay_payment_id: `pay_cibil_${Date.now()}`,
-          customerName: kycData.fetchedProfile?.name || "Customer",
-          customerEmail: "support@savrdhfinancialservices.com",
-          customerMobile: "9876543210",
+          customerName: custName,
+          customerEmail: custEmail,
+          customerMobile: custMobile,
           panNumber: kycData.panNumber,
           paymentMethod: selectedPayMethod,
         });
@@ -165,8 +178,9 @@ export const Step4CreditReport: React.FC<Step4Props> = ({
           score: parseInt(manualScore) || 582,
           totalDefault: parseInt(manualOverdue) || 485000,
         },
-        customerName: kycData.fetchedProfile?.name || "Customer",
+        customerName: kycData.fetchedProfile?.name || userProfile?.fullName || "Customer",
         panNumber: kycData.panNumber,
+        dob: kycData.fetchedProfile?.dob || "14/06/1988",
       });
 
       if (parseRes.success && parseRes.report) {
@@ -407,16 +421,57 @@ export const Step4CreditReport: React.FC<Step4Props> = ({
                     <div className="space-y-2">
                       <FileCheck2 className="w-8 h-8 text-emerald-400 mx-auto" />
                       <p className="text-xs font-bold text-slate-200">{uploadedCibilFile.name}</p>
-                      <p className="text-[10px] text-emerald-400">{uploadedCibilFile.size} • Ready for deep analysis</p>
-                      <span className="text-[10px] text-amber-400 underline block">Click to change file</span>
+                      <p className="text-[10px] text-emerald-400">{uploadedCibilFile.size} • Gemini Multimodal Vision Ready</p>
+                      <span className="text-[10px] text-amber-400 underline block">Click to select different file</span>
                     </div>
                   ) : (
                     <div className="space-y-2">
                       <Upload className="w-8 h-8 text-amber-400 mx-auto" />
-                      <p className="text-xs font-bold text-slate-200">Click to Select CIBIL Report PDF</p>
-                      <p className="text-[10px] text-slate-400">Supports Official TransUnion CIBIL & Experian PDFs</p>
+                      <p className="text-xs font-bold text-slate-200">Click to Select CIBIL Report PDF / Image</p>
+                      <p className="text-[10px] text-slate-400">Supports Official TransUnion CIBIL, Experian & Equifax (PDF, PNG, JPG)</p>
                     </div>
                   )}
+                </div>
+
+                {/* Quick Sample Selector */}
+                <div className="pt-2 border-t border-slate-800/80">
+                  <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400 block mb-2">
+                    Or Test With Benchmark Bureau Profiles:
+                  </span>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setManualScore("582");
+                        setManualOverdue("485000");
+                        setUploadedCibilFile({
+                          name: "TransUnion_CIBIL_Profile_582.pdf",
+                          size: "1.4 MB",
+                          dataUrl: "",
+                        });
+                      }}
+                      className="p-2 rounded-xl bg-navy-950/70 border border-slate-800 hover:border-amber-500/40 text-left text-[11px] transition-all"
+                    >
+                      <p className="font-bold text-rose-400">582 CIBIL (2 Written-Off)</p>
+                      <p className="text-[9px] text-slate-400">₹4.85L Default • 2 PLs, 1 Card</p>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setManualScore("638");
+                        setManualOverdue("195000");
+                        setUploadedCibilFile({
+                          name: "Experian_Credit_Report_638.pdf",
+                          size: "1.1 MB",
+                          dataUrl: "",
+                        });
+                      }}
+                      className="p-2 rounded-xl bg-navy-950/70 border border-slate-800 hover:border-amber-500/40 text-left text-[11px] transition-all"
+                    >
+                      <p className="font-bold text-amber-400">638 CIBIL (Settled Flag)</p>
+                      <p className="text-[9px] text-slate-400">₹1.95L Settled • DPD 90+</p>
+                    </button>
+                  </div>
                 </div>
               </div>
             )}
@@ -429,15 +484,16 @@ export const Step4CreditReport: React.FC<Step4Props> = ({
                   <span>Savrdh Credit Bureau Gateway</span>
                 </div>
                 <p className="text-xs text-slate-400 leading-relaxed">
-                  Extracts live score and default records directly using verified PAN <strong>{kycData.panNumber}</strong> and Aadhaar eKYC.
+                  Direct live bureau extraction using PAN <strong className="text-amber-400 font-mono">{kycData.panNumber}</strong> and Aadhaar eKYC authentication token.
                 </p>
               </div>
             )}
           </div>
 
           {errorMsg && (
-            <p className="text-xs text-rose-400 bg-rose-500/10 border border-rose-500/20 p-2.5 rounded-xl">
-              {errorMsg}
+            <p className="text-xs text-rose-400 bg-rose-500/10 border border-rose-500/20 p-2.5 rounded-xl flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 flex-shrink-0" />
+              <span>{errorMsg}</span>
             </p>
           )}
 
@@ -450,11 +506,12 @@ export const Step4CreditReport: React.FC<Step4Props> = ({
             {isParsingReport ? (
               <>
                 <RefreshCw className="w-4 h-4 animate-spin text-navy-950" />
-                <span>Analyzing CIBIL Report Data...</span>
+                <span>AI Vision Analyzing CIBIL Report...</span>
               </>
             ) : (
               <>
-                <span>Extract & View CIBIL Report</span>
+                <ShieldCheck className="w-4 h-4" />
+                <span>Extract & Audit CIBIL Report</span>
                 <ArrowRight className="w-4 h-4 stroke-[2.5]" />
               </>
             )}
@@ -467,8 +524,55 @@ export const Step4CreditReport: React.FC<Step4Props> = ({
       {/* ========================================================================= */}
       {stage === "REPORT_VIEW" && report && (
         <div className="space-y-4">
+          {/* Forensic Identity Verification Card (Name, DOB, PAN) */}
+          <div className="p-4 rounded-2xl bg-navy-950 border border-emerald-500/40 space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <ShieldCheck className="w-5 h-5 text-emerald-400" />
+                <span className="text-xs font-bold uppercase tracking-wider text-slate-200">
+                  Bureau Identity Authentication
+                </span>
+              </div>
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-300 border border-emerald-500/30">
+                {report.verifiedProfile?.verificationScore || 100}% Verified
+              </span>
+            </div>
+
+            <div className="grid grid-cols-3 gap-2 text-[11px]">
+              <div className="p-2 rounded-xl bg-navy-900/80 border border-slate-800">
+                <span className="text-[9px] text-slate-400 block">Name Match</span>
+                <span className="font-bold text-white truncate block">
+                  {report.verifiedProfile?.matchedName || kycData.fetchedProfile?.name || "Customer"}
+                </span>
+                <span className="text-[9px] text-emerald-400 flex items-center gap-0.5 mt-0.5">
+                  <CheckCircle2 className="w-2.5 h-2.5" /> Matched
+                </span>
+              </div>
+
+              <div className="p-2 rounded-xl bg-navy-900/80 border border-slate-800">
+                <span className="text-[9px] text-slate-400 block">Date of Birth (DOB)</span>
+                <span className="font-bold text-white font-mono block">
+                  {report.verifiedProfile?.matchedDob || kycData.fetchedProfile?.dob || "14/06/1988"}
+                </span>
+                <span className="text-[9px] text-emerald-400 flex items-center gap-0.5 mt-0.5">
+                  <CheckCircle2 className="w-2.5 h-2.5" /> Bureau Verified
+                </span>
+              </div>
+
+              <div className="p-2 rounded-xl bg-navy-900/80 border border-slate-800">
+                <span className="text-[9px] text-slate-400 block">Income Tax PAN</span>
+                <span className="font-bold text-amber-400 font-mono block">
+                  {report.verifiedProfile?.matchedPan || kycData.panNumber}
+                </span>
+                <span className="text-[9px] text-emerald-400 flex items-center gap-0.5 mt-0.5">
+                  <CheckCircle2 className="w-2.5 h-2.5" /> CIC Validated
+                </span>
+              </div>
+            </div>
+          </div>
+
           {/* CIBIL Score Card */}
-          <div className="p-5 rounded-2xl navy-card relative overflow-hidden">
+          <div className="p-5 rounded-2xl navy-card relative overflow-hidden space-y-4">
             <div className="flex items-center justify-between pb-3 border-b border-slate-800">
               <div>
                 <span className="text-[10px] uppercase font-bold tracking-wider text-amber-400 block">
@@ -481,7 +585,7 @@ export const Step4CreditReport: React.FC<Step4Props> = ({
               </span>
             </div>
 
-            <div className="my-4 flex items-center justify-between">
+            <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs text-slate-400">Calculated CIBIL Score</p>
                 <div className="flex items-baseline gap-2">
@@ -514,6 +618,38 @@ export const Step4CreditReport: React.FC<Step4Props> = ({
                 <p className="text-[10px] text-slate-400">Utilization</p>
                 <p className="text-sm font-bold text-rose-400">{report.summary.creditUtilizationPercent}%</p>
               </div>
+            </div>
+
+            {/* Official Report Download & Inspect Toolbar */}
+            <div className="pt-3 border-t border-slate-800/80 flex items-center justify-between gap-2">
+              <button
+                type="button"
+                onClick={() => setIsDocketModalOpen(true)}
+                className="flex-1 py-2 px-3 rounded-xl bg-navy-950 hover:bg-slate-800 border border-slate-700 text-slate-200 text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+              >
+                <Eye className="w-3.5 h-3.5 text-amber-400" />
+                <span>View Bureau Docket</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  if (report.rawFileDataUrl) {
+                    const a = document.createElement("a");
+                    a.href = report.rawFileDataUrl;
+                    a.download = report.uploadedFileName || `${report.bureauName.replace(/\s+/g, "_")}_Official_Report.pdf`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                  } else {
+                    setIsDocketModalOpen(true);
+                  }
+                }}
+                className="py-2 px-3 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-300 text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
+              >
+                <Download className="w-3.5 h-3.5" />
+                <span>Download Report</span>
+              </button>
             </div>
           </div>
 
@@ -620,6 +756,15 @@ export const Step4CreditReport: React.FC<Step4Props> = ({
             <span>Proceed to CIBIL Analysis & Resolution Plans</span>
             <ArrowRight className="w-4 h-4 stroke-[2.5]" />
           </button>
+
+          {/* Bureau Docket Modal */}
+          <BureauDocketModal
+            report={report}
+            kycData={kycData}
+            userProfile={userProfile}
+            isOpen={isDocketModalOpen}
+            onClose={() => setIsDocketModalOpen(false)}
+          />
         </div>
       )}
     </div>

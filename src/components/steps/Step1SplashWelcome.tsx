@@ -5,9 +5,10 @@ import { BrandLogo } from "../common/BrandLogo";
 interface Step1Props {
   onGetStarted: () => void;
   onBiometricLogin: () => void;
+  onOpenAdminCRM?: () => void;
 }
 
-export const Step1SplashWelcome: React.FC<Step1Props> = ({ onGetStarted, onBiometricLogin }) => {
+export const Step1SplashWelcome: React.FC<Step1Props> = ({ onGetStarted, onBiometricLogin, onOpenAdminCRM }) => {
   const [showSplash, setShowSplash] = useState(true);
 
   useEffect(() => {
@@ -135,6 +136,17 @@ export const Step1SplashWelcome: React.FC<Step1Props> = ({ onGetStarted, onBiome
           <Fingerprint className="w-4 h-4 text-amber-400" />
           <span>Quick Unlock with Biometrics / Face ID</span>
         </button>
+
+        {onOpenAdminCRM && (
+          <button
+            id="btn-staff-crm-login"
+            onClick={onOpenAdminCRM}
+            className="w-full py-2.5 px-4 rounded-xl bg-navy-950/80 border border-amber-500/30 hover:border-amber-400 text-amber-300 hover:text-amber-200 font-medium text-xs transition-all flex items-center justify-center gap-2 cursor-pointer"
+          >
+            <ShieldCheck className="w-3.5 h-3.5 text-amber-400" />
+            <span>Staff & Legal CRM Portal Login</span>
+          </button>
+        )}
 
         <div className="flex items-center justify-center gap-3 pt-1 text-[10px] text-slate-400">
           <span>Mon – Sat: 10 AM – 7 PM</span>

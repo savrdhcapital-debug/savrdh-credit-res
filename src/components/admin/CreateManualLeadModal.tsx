@@ -26,6 +26,7 @@ export const CreateManualLeadModal: React.FC<CreateManualLeadModalProps> = ({
   const [caseStatus, setCaseStatus] = useState("Under Legal Review");
   const [assignedAdvisorName, setAssignedAdvisorName] = useState("Adv. Vikram Malhotra");
   const [notes, setNotes] = useState("");
+  const [sendCustomerEmail, setSendCustomerEmail] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
@@ -53,6 +54,7 @@ export const CreateManualLeadModal: React.FC<CreateManualLeadModalProps> = ({
       caseStatus,
       assignedAdvisorName,
       notes,
+      sendCustomerEmail,
     });
 
     setIsLoading(false);
@@ -213,12 +215,30 @@ export const CreateManualLeadModal: React.FC<CreateManualLeadModalProps> = ({
             />
           </div>
 
+          <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                id="sendCustomerEmail"
+                checked={sendCustomerEmail}
+                onChange={(e) => setSendCustomerEmail(e.target.checked)}
+                className="w-4 h-4 rounded text-amber-500 bg-navy-950 border-slate-700 focus:ring-amber-400"
+              />
+              <label htmlFor="sendCustomerEmail" className="text-[11px] text-slate-200 font-medium cursor-pointer">
+                Auto-send Official Tax Invoice & Executed LOA Email to customer
+              </label>
+            </div>
+            <span className="text-[10px] text-amber-400 font-semibold px-2 py-0.5 bg-amber-400/10 rounded-full">
+              support@savrdhfinancialservices.com
+            </span>
+          </div>
+
           <button
             type="submit"
             disabled={isLoading}
             className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-navy-950 font-bold text-xs shadow-lg shadow-amber-500/20 transition-all flex items-center justify-center gap-2"
           >
-            {isLoading ? "Creating Lead..." : "Create Client Docket"}
+            {isLoading ? "Creating Lead & Dispatching..." : "Create Client Docket"}
           </button>
         </form>
       </div>
