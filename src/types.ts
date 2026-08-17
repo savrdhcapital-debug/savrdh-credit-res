@@ -262,3 +262,80 @@ export interface AppNotification {
   isRead: boolean;
   actionTab?: string;
 }
+
+export interface AdminUser {
+  id: string;
+  name: string;
+  email: string;
+  role: "SUPER_ADMIN" | "LEGAL_DIRECTOR" | "CASE_MANAGER";
+  token: string;
+}
+
+export interface AdminLeadNote {
+  id: string;
+  author: string;
+  text: string;
+  createdAt: string;
+}
+
+export interface AdminLeadTimelineEvent {
+  id: string;
+  title: string;
+  description: string;
+  timestamp: string;
+  type: "SYSTEM" | "LEGAL" | "PAYMENT" | "DOC" | "COMMUNICATION";
+}
+
+export interface AdminLeadDetail extends CRMLeadRecord {
+  dob?: string;
+  gender?: string;
+  address?: string;
+  fatherName?: string;
+  panDocUrl?: string;
+  panDocName?: string;
+  aadhaarFrontDocUrl?: string;
+  aadhaarFrontDocName?: string;
+  aadhaarBackDocUrl?: string;
+  aadhaarBackDocName?: string;
+  cibilPdfUrl?: string;
+  cibilPdfName?: string;
+  creditBureau?: string;
+  scoreBand?: string;
+  activeLoansCount?: number;
+  creditCardsCount?: number;
+  settledAccountsCount?: number;
+  writtenOffAccountsCount?: number;
+  creditUtilizationPercent?: number;
+  dpdInstances?: number;
+  cibilAccounts?: CreditAccountItem[];
+  cibilFee?: {
+    isPaid: boolean;
+    amount: number;
+    paymentId?: string;
+    invoiceNumber?: string;
+    paidAt?: string;
+  };
+  resolutionFee?: {
+    isPaid: boolean;
+    packageName: string;
+    amount: number;
+    paymentId?: string;
+    invoiceNumber?: string;
+    paidAt?: string;
+  };
+  loaSignatureHash?: string;
+  assignedAdvisor?: AssignedAdvisor;
+  notes?: AdminLeadNote[];
+  timeline?: AdminLeadTimelineEvent[];
+}
+
+export interface AdminStats {
+  totalLeads: number;
+  cibilProcuredCount: number;
+  planSubscribedCount: number;
+  totalRevenueCollected: number;
+  totalDefaultUnderResolution: number;
+  activeDisputesCount: number;
+  statusCounts: { [key: string]: number };
+}
+
