@@ -52,18 +52,34 @@ export interface KYCData {
 export interface CreditAccountItem {
   id: string;
   institution: string;
-  accountType: "Personal Loan" | "Credit Card" | "Auto Loan" | "Home Loan" | "Consumer Durable";
+  accountType:
+    | "Personal Loan"
+    | "Credit Card"
+    | "Auto Loan"
+    | "Home Loan"
+    | "Consumer Durable"
+    | "Two-wheeler Loan"
+    | "Gold Loan"
+    | "Priority Sector - Gold Loan"
+    | "Kisan Credit Card"
+    | "Secured Credit Card"
+    | "Consumer Loan"
+    | "Business Loan – General"
+    | "Loan Against Bank Deposits"
+    | string;
   accountNumberMasked: string;
   sanctionedAmount: number;
   currentBalance: number;
   overdueAmount: number;
-  status: "Active" | "Settled" | "Written-Off" | "Closed" | "Defaulted";
+  status: "Active" | "Settled" | "Written-Off" | "Closed" | "Defaulted" | "Overdue" | string;
   openedDate: string;
+  closedDate?: string;
+  lastPaymentDate?: string;
   lastReportedDate: string;
   dpdHistory: {
     month: string;
     year: string;
-    dpd: "000" | "030" | "060" | "090" | "120+" | "LSS" | "SET";
+    dpd: "000" | "030" | "060" | "090" | "120+" | "LSS" | "SET" | "STD" | "DBT" | "SMA" | "SUB" | "XXX" | string;
   }[];
 }
 
@@ -352,5 +368,46 @@ export interface AdminStats {
   totalDefaultUnderResolution: number;
   activeDisputesCount: number;
   statusCounts: { [key: string]: number };
+}
+
+export interface LoanTransaction {
+  date: string;
+  description: string;
+  debitAmount: number;
+  creditAmount: number;
+  balance: number;
+  type: "EMI" | "BOUNCE_CHARGE" | "PENAL_INTEREST" | "FORECLOSURE" | "DISBURSAL" | "REGULAR";
+  isFlaggedAsViolation?: boolean;
+  violationReason?: string;
+}
+
+export interface LoanStatementAnalysis {
+  id: string;
+  lenderName: string;
+  loanAccountNumber: string;
+  loanType: string;
+  borrowerName: string;
+  sanctionedAmount: number;
+  disbursalDate: string;
+  tenorMonths: number;
+  interestRatePerAnnum: number;
+  interestType: "Fixed" | "Floating";
+  emiAmount: number;
+  emisPaidCount: number;
+  emisPendingCount: number;
+  principalPaid: number;
+  interestPaid: number;
+  currentPrincipalOutstanding: number;
+  foreclosureChargesApplicable: number;
+  foreclosureAmountPayoff: number;
+  totalBounceCount: number;
+  totalBounceChargesBilled: number;
+  totalPenalInterestBilled: number;
+  illegalPenalChargesDetected: number;
+  rbiViolationFlags: string[];
+  repaymentTrackScore: number; // 0 - 100%
+  executiveSummary: string;
+  recommendationPlan: string;
+  transactions: LoanTransaction[];
 }
 

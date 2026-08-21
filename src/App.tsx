@@ -41,12 +41,17 @@ import { SecuritySettingsModal } from "./components/modals/SecuritySettingsModal
 import { AdminCRMApp } from "./components/admin/AdminCRMApp";
 import { AdminLoginModal } from "./components/admin/AdminLoginModal";
 import { AdminLoginPage } from "./components/admin/AdminLoginPage";
+import { CibilReportAnalyzer } from "./components/tools/CibilReportAnalyzer";
+import { LoanStatementAnalyzer } from "./components/tools/LoanStatementAnalyzer";
 import { AdminUser } from "./types";
-import { ShieldCheck } from "lucide-react";
+import { ShieldCheck, FileSpreadsheet, Scale, Sparkles, X } from "lucide-react";
 
 export default function App() {
   // App Step State
   const [currentStep, setCurrentStep] = useState<AppStep>("SPLASH");
+
+  // Standalone Forensic Tools State
+  const [activeStandaloneTool, setActiveStandaloneTool] = useState<"CIBIL_ANALYZER" | "LOAN_ANALYZER" | null>(null);
 
   // Admin CRM State
   const [isAdminMode, setIsAdminMode] = useState<boolean>(() => {
@@ -247,6 +252,8 @@ export default function App() {
       currentStep={currentStep}
       onResetFlow={handleResetFlow}
       onOpenAdminCRM={() => setIsAdminMode(true)}
+      onOpenCibilAnalyzer={() => setActiveStandaloneTool("CIBIL_ANALYZER")}
+      onOpenLoanAnalyzer={() => setActiveStandaloneTool("LOAN_ANALYZER")}
     >
       {/* Top Stepper for linear onboarding (Steps 2-7) */}
       {currentStep !== "SPLASH" && currentStep !== "DASHBOARD" && (
@@ -374,6 +381,52 @@ export default function App() {
           crmLead={crmLead}
           onClose={() => setActiveReportModal(null)}
         />
+      )}
+
+      {/* Standalone Forensic CIBIL Report Analyzer Modal */}
+      {activeStandaloneTool === "CIBIL_ANALYZER" && (
+        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-2 sm:p-4 overflow-y-auto">
+          <div className="w-full max-w-4xl max-h-[92vh] overflow-y-auto rounded-3xl bg-navy-950 border border-amber-500/30 shadow-2xl shadow-black/90 p-4 sm:p-6 relative">
+            <button
+              onClick={() => setActiveStandaloneTool(null)}
+              className="absolute top-4 right-4 p-2 rounded-xl bg-navy-900 border border-slate-700 text-slate-400 hover:text-white hover:border-amber-500/50 transition-all z-10"
+              title="Close Tool"
+            >
+              <X className="w-5 h-5" />
+            </button>
+            <CibilReportAnalyzer
+              initialReport={creditReport}
+              onClose={() => setActiveStandaloneTool(null)}
+              onApplyToApp={(newReport) => {
+                setCreditReport(newReport);
+                if (currentStep === "SPLASH" || currentStep === "REGISTRATION" || currentStep === "KYC") {
+                  setCurrentStep("CREDIT_REPORT");
+                }
+                setActiveStandaloneTool(null);
+              }}
+              isStandalone={true}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Standalone Forensic Loan Statement & RBI Audit Analyzer Modal */}
+      {activeStandaloneTool === "LOAN_ANALYZER" && (
+        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-2 sm:p-4 overflow-y-auto">
+          <div className="w-full max-w-4xl max-h-[92vh] overflow-y-auto rounded-3xl bg-navy-950 border border-indigo-500/30 shadow-2xl shadow-black/90 p-4 sm:p-6 relative">
+            <button
+              onClick={() => setActiveStandaloneTool(null)}
+              className="absolute top-4 right-4 p-2 rounded-xl bg-navy-900 border border-slate-700 text-slate-400 hover:text-white hover:border-indigo-500/50 transition-all z-10"
+              title="Close Tool"
+            >
+              <X className="w-5 h-5" />
+            </button>
+            <LoanStatementAnalyzer
+              onClose={() => setActiveStandaloneTool(null)}
+              isStandalone={true}
+            />
+          </div>
+        </div>
       )}
 
       {/* Security & Authentication Settings Modal */}

@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Smartphone, Monitor, RotateCcw, ShieldCheck, Sparkles, ChevronRight } from "lucide-react";
+import { Smartphone, Monitor, RotateCcw, ShieldCheck, Sparkles, ChevronRight, FileSpreadsheet, Scale } from "lucide-react";
 import { AppStep } from "../../types";
 
 interface MobileContainerProps {
@@ -8,6 +8,8 @@ interface MobileContainerProps {
   onResetFlow: () => void;
   onJumpToStep?: (step: AppStep) => void;
   onOpenAdminCRM?: () => void;
+  onOpenCibilAnalyzer?: () => void;
+  onOpenLoanAnalyzer?: () => void;
 }
 
 export const MobileContainer: React.FC<MobileContainerProps> = ({
@@ -16,6 +18,8 @@ export const MobileContainer: React.FC<MobileContainerProps> = ({
   onResetFlow,
   onJumpToStep,
   onOpenAdminCRM,
+  onOpenCibilAnalyzer,
+  onOpenLoanAnalyzer,
 }) => {
   const [deviceFrame, setDeviceFrame] = useState(true);
 
@@ -31,32 +35,54 @@ export const MobileContainer: React.FC<MobileContainerProps> = ({
           </span>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5">
+          {onOpenCibilAnalyzer && (
+            <button
+              onClick={onOpenCibilAnalyzer}
+              className="py-1 px-2 rounded-lg bg-sky-500/15 border border-sky-500/30 hover:bg-sky-500/25 text-sky-300 font-semibold text-[10px] flex items-center gap-1 transition-colors"
+              title="Forensic CIBIL PDF & Bureau Analyzer"
+            >
+              <FileSpreadsheet className="w-3 h-3" />
+              <span>CIBIL Tool</span>
+            </button>
+          )}
+
+          {onOpenLoanAnalyzer && (
+            <button
+              onClick={onOpenLoanAnalyzer}
+              className="py-1 px-2 rounded-lg bg-indigo-500/15 border border-indigo-500/30 hover:bg-indigo-500/25 text-indigo-300 font-semibold text-[10px] flex items-center gap-1 transition-colors"
+              title="Forensic Loan Statement & RBI Violation Analyzer"
+            >
+              <Scale className="w-3 h-3" />
+              <span>Loan Audit</span>
+            </button>
+          )}
+
           {onOpenAdminCRM && (
             <button
               onClick={onOpenAdminCRM}
-              className="py-1 px-2.5 rounded-lg bg-amber-500/15 border border-amber-500/30 hover:bg-amber-500/25 text-amber-300 font-semibold text-[11px] flex items-center gap-1.5 transition-colors"
+              className="py-1 px-2 rounded-lg bg-amber-500/15 border border-amber-500/30 hover:bg-amber-500/25 text-amber-300 font-semibold text-[10px] flex items-center gap-1 transition-colors"
               title="Open Staff & Advocate CRM Login"
             >
-              <ShieldCheck className="w-3.5 h-3.5" />
-              <span>CRM Login</span>
+              <ShieldCheck className="w-3 h-3" />
+              <span>CRM</span>
             </button>
           )}
 
           <button
             onClick={() => setDeviceFrame(!deviceFrame)}
-            className="p-1.5 rounded-lg bg-navy-900 border border-slate-700 hover:border-amber-500/40 text-slate-400 hover:text-amber-300 transition-colors"
+            className="p-1 rounded-lg bg-navy-900 border border-slate-700 hover:border-amber-500/40 text-slate-400 hover:text-amber-300 transition-colors"
             title={deviceFrame ? "Switch to Full Screen" : "Switch to Mobile Device Frame"}
           >
-            {deviceFrame ? <Monitor className="w-3.5 h-3.5" /> : <Smartphone className="w-3.5 h-3.5" />}
+            {deviceFrame ? <Monitor className="w-3 h-3" /> : <Smartphone className="w-3 h-3" />}
           </button>
 
           <button
             onClick={onResetFlow}
-            className="p-1.5 rounded-lg bg-navy-900 border border-slate-700 hover:border-rose-500/40 text-slate-400 hover:text-rose-300 transition-colors"
+            className="p-1 rounded-lg bg-navy-900 border border-slate-700 hover:border-rose-500/40 text-slate-400 hover:text-rose-300 transition-colors"
             title="Reset to Splash / Step 1"
           >
-            <RotateCcw className="w-3.5 h-3.5" />
+            <RotateCcw className="w-3 h-3" />
           </button>
         </div>
       </div>

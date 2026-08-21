@@ -10,7 +10,8 @@ import {
   Phone,
   Mail,
   Scale,
-  Award
+  Award,
+  FileDown
 } from "lucide-react";
 import {
   UserProfile,
@@ -117,19 +118,30 @@ export const Step8LeadSyncing: React.FC<Step8Props> = ({
             Formally authorizes <strong className="text-slate-100">Savrdh Financial Services Pvt. Ltd.</strong> and panel advocates to access your credit files (CIBIL, Experian) and legally represent you in One-Time Settlement (OTS) disputes with Banks & NBFCs.
           </p>
 
-          <div className="flex items-center justify-between pt-1 border-t border-amber-500/20 text-[10px]">
+          <div className="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-amber-500/20 text-[10px]">
             <span className="text-slate-400">
               Ref: <span className="font-mono text-amber-300">{crmLead?.loaReferenceNumber || "SAV-LOA-2026-8941"}</span>
             </span>
-            {onViewLoa && (
-              <button
-                type="button"
-                onClick={onViewLoa}
-                className="text-amber-400 hover:text-amber-300 font-bold underline cursor-pointer"
+            <div className="flex items-center gap-3">
+              {onViewLoa && (
+                <button
+                  type="button"
+                  onClick={onViewLoa}
+                  className="text-amber-400 hover:text-amber-300 font-bold underline cursor-pointer"
+                >
+                  Preview LOA
+                </button>
+              )}
+              <a
+                href={`/api/consent/download-loa-pdf?name=${encodeURIComponent(userProfile.fullName)}&pan=${encodeURIComponent(kycData.panNumber || "")}&aadhaar=${encodeURIComponent(kycData.maskedAadhaar || "")}&ref=${encodeURIComponent(crmLead?.loaReferenceNumber || "SAV-LOA-2026")}&mobile=${encodeURIComponent(userProfile.mobile)}&email=${encodeURIComponent(userProfile.email || "")}&address=${encodeURIComponent(kycData.fetchedProfile?.address || "")}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-300 hover:text-amber-200 bg-amber-500/20 hover:bg-amber-500/30 px-2 py-0.5 rounded border border-amber-500/30 transition-colors"
               >
-                Preview Letter of Authority
-              </button>
-            )}
+                <FileDown className="w-3 h-3" />
+                Download PDF
+              </a>
+            </div>
           </div>
         </div>
 

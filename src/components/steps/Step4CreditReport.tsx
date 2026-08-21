@@ -58,6 +58,8 @@ export const Step4CreditReport: React.FC<Step4Props> = ({
   const [procurementMethod, setProcurementMethod] = useState<"UPLOAD" | "API_FETCH" | "MANUAL">("UPLOAD");
   const [uploadedCibilFile, setUploadedCibilFile] = useState<{ name: string; size: string; dataUrl: string } | null>(null);
   const [isParsingReport, setIsParsingReport] = useState(false);
+  const [parsingStep, setParsingStep] = useState<string>("");
+  const [parsingProgress, setParsingProgress] = useState<number>(0);
   const [errorMsg, setErrorMsg] = useState("");
 
   // Manual fallback inputs (Clean state)
@@ -69,6 +71,8 @@ export const Step4CreditReport: React.FC<Step4Props> = ({
   const [expandedAccount, setExpandedAccount] = useState<string | null>("acc-cibil-1");
   const [activeTab, setActiveTab] = useState<"ALL" | "DEFAULTS" | "WRITTEN_OFF" | "SETTLED">("DEFAULTS");
   const [isDocketModalOpen, setIsDocketModalOpen] = useState(false);
+  const [isSummaryConfirmed, setIsSummaryConfirmed] = useState(false);
+  const [confirmationError, setConfirmationError] = useState("");
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -165,10 +169,27 @@ export const Step4CreditReport: React.FC<Step4Props> = ({
     reader.readAsDataURL(file);
   };
 
-  // Parse & Load CIBIL Report
+  // Parse & Load CIBIL Report with Live Forensic Diagnostic Progress
   const handleProcessCibilReport = async () => {
     setIsParsingReport(true);
     setErrorMsg("");
+    setParsingProgress(15);
+    setParsingStep("Reading & decoding CIBIL Report document stream...");
+
+    const t1 = setTimeout(() => {
+      setParsingProgress(45);
+      setParsingStep("Scanning tradelines, loan accounts, credit cards & DPD histories...");
+    }, 350);
+
+    const t2 = setTimeout(() => {
+      setParsingProgress(75);
+      setParsingStep("Performing forensic PAN & legal bureau authenticity audit...");
+    }, 700);
+
+    const t3 = setTimeout(() => {
+      setParsingProgress(95);
+      setParsingStep("Formatting comprehensive bureau diagnostic report...");
+    }, 1050);
 
     try {
       const parseRes = await parseCibilReportApi({
@@ -183,16 +204,29 @@ export const Step4CreditReport: React.FC<Step4Props> = ({
         dob: kycData.fetchedProfile?.dob || "14/06/1988",
       });
 
+      clearTimeout(t1);
+      clearTimeout(t2);
+      clearTimeout(t3);
+      setParsingProgress(100);
+      setParsingStep("Bureau Audit Complete!");
+
       if (parseRes.success && parseRes.report) {
         setReport(parseRes.report);
-        setStage("REPORT_VIEW");
+        setTimeout(() => {
+          setStage("REPORT_VIEW");
+        }, 300);
       } else {
         setErrorMsg("Failed to parse credit report. Please check the file.");
       }
     } catch (err: any) {
+      clearTimeout(t1);
+      clearTimeout(t2);
+      clearTimeout(t3);
       setErrorMsg(err.message || "Failed to process credit bureau report.");
     } finally {
-      setIsParsingReport(false);
+      setTimeout(() => {
+        setIsParsingReport(false);
+      }, 350);
     }
   };
 
@@ -490,6 +524,38 @@ export const Step4CreditReport: React.FC<Step4Props> = ({
             )}
           </div>
 
+          {isParsingReport && (
+            <div className="p-4 rounded-2xl bg-navy-950/95 border border-amber-500/40 space-y-3 animate-pulse">
+              <div className="flex items-center justify-between text-xs">
+                <span className="font-semibold text-amber-300 flex items-center gap-2">
+                  <RefreshCw className="w-3.5 h-3.5 animate-spin text-amber-400" />
+                  {parsingStep || "Analyzing CIBIL Report..."}
+                </span>
+                <span className="font-mono font-bold text-amber-400">{parsingProgress}%</span>
+              </div>
+              <div className="w-full bg-slate-800 rounded-full h-2 overflow-hidden">
+                <div
+                  className="bg-gold-gradient h-full rounded-full transition-all duration-300 ease-out"
+                  style={{ width: `${parsingProgress}%` }}
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-2 text-[10px] text-slate-400 pt-1">
+                <span className={parsingProgress >= 25 ? "text-emerald-400 flex items-center gap-1 font-medium" : "flex items-center gap-1"}>
+                  <CheckCircle2 className="w-3 h-3" /> PDF Text & Vector Extraction
+                </span>
+                <span className={parsingProgress >= 50 ? "text-emerald-400 flex items-center gap-1 font-medium" : "flex items-center gap-1"}>
+                  <CheckCircle2 className="w-3 h-3" /> Account & DPD Pattern Match
+                </span>
+                <span className={parsingProgress >= 75 ? "text-emerald-400 flex items-center gap-1 font-medium" : "flex items-center gap-1"}>
+                  <CheckCircle2 className="w-3 h-3" /> PAN Identity Forensic Check
+                </span>
+                <span className={parsingProgress >= 95 ? "text-emerald-400 flex items-center gap-1 font-medium" : "flex items-center gap-1"}>
+                  <CheckCircle2 className="w-3 h-3" /> Legal Strategy Formatter
+                </span>
+              </div>
+            </div>
+          )}
+
           {errorMsg && (
             <p className="text-xs text-rose-400 bg-rose-500/10 border border-rose-500/20 p-2.5 rounded-xl flex items-center gap-2">
               <AlertCircle className="w-4 h-4 flex-shrink-0" />
@@ -506,7 +572,7 @@ export const Step4CreditReport: React.FC<Step4Props> = ({
             {isParsingReport ? (
               <>
                 <RefreshCw className="w-4 h-4 animate-spin text-navy-950" />
-                <span>AI Vision Analyzing CIBIL Report...</span>
+                <span>Forensic AI Extraction in Progress ({parsingProgress}%)...</span>
               </>
             ) : (
               <>
@@ -748,12 +814,128 @@ export const Step4CreditReport: React.FC<Step4Props> = ({
             </div>
           </div>
 
+          {/* Extracted Data Summary & Pre-Analysis Confirmation View */}
+          <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-navy-900/90 via-navy-950/90 to-slate-900/90 border-2 border-amber-500/30 space-y-4 shadow-xl">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400">
+                  <ShieldCheck className="w-4 h-4" />
+                </div>
+                <div>
+                  <h4 className="text-xs sm:text-sm font-bold text-white flex items-center gap-2">
+                    <span>Extracted Bureau Metrics Summary</span>
+                    <span className="px-2 py-0.2 rounded-full bg-emerald-500/20 text-emerald-300 text-[10px] font-mono font-bold border border-emerald-500/40">
+                      CONFIRMATION REQUIRED
+                    </span>
+                  </h4>
+                  <p className="text-[11px] text-slate-400">
+                    Verify extracted financial metrics before running Deep Forensic AI Analysis & Legal Resolution Modeling
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Key Metrics 3-Column Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              {/* Metric 1: Total Debt / Sanctioned Obligation */}
+              <div className="p-3 rounded-xl bg-navy-950/80 border border-slate-800 space-y-1">
+                <div className="flex items-center justify-between text-slate-400 text-[10px] font-semibold uppercase tracking-wider">
+                  <span>Total Debt / Sanctioned</span>
+                  <Building className="w-3.5 h-3.5 text-amber-400" />
+                </div>
+                <div className="text-lg font-bold text-slate-100 font-mono">
+                  ₹{(report.accounts.reduce((sum, a) => sum + (a.sanctionedAmount || a.currentBalance || 0), 0) || report.summary.totalOutstanding).toLocaleString("en-IN")}
+                </div>
+                <p className="text-[10px] text-slate-400">
+                  Active Outstanding: <strong className="text-slate-200">₹{report.summary.totalOutstanding.toLocaleString("en-IN")}</strong>
+                </p>
+              </div>
+
+              {/* Metric 2: Active Accounts */}
+              <div className="p-3 rounded-xl bg-navy-950/80 border border-slate-800 space-y-1">
+                <div className="flex items-center justify-between text-slate-400 text-[10px] font-semibold uppercase tracking-wider">
+                  <span>Active Accounts</span>
+                  <CreditCard className="w-3.5 h-3.5 text-amber-400" />
+                </div>
+                <div className="text-lg font-bold text-amber-400 font-mono">
+                  {report.accounts.length} Accounts
+                </div>
+                <p className="text-[10px] text-slate-400">
+                  {report.summary.writtenOffAccountsCount} Written-Off • {report.summary.settledAccountsCount} Settled
+                </p>
+              </div>
+
+              {/* Metric 3: Overdue Balance */}
+              <div className="p-3 rounded-xl bg-navy-950/80 border border-rose-500/30 space-y-1 bg-rose-950/10">
+                <div className="flex items-center justify-between text-rose-300 text-[10px] font-semibold uppercase tracking-wider">
+                  <span>Overdue Balance</span>
+                  <TrendingDown className="w-3.5 h-3.5 text-rose-400" />
+                </div>
+                <div className="text-lg font-bold text-rose-400 font-mono">
+                  ₹{report.summary.totalOverdue.toLocaleString("en-IN")}
+                </div>
+                <p className="text-[10px] text-slate-400">
+                  Max DPD Defaulter Mark: <strong className="text-rose-300 font-mono">{report.summary.maxDpd}</strong>
+                </p>
+              </div>
+            </div>
+
+            {/* Identity & Legal Verification Tags */}
+            <div className="p-3 rounded-xl bg-navy-950/60 border border-slate-800 flex flex-wrap items-center justify-between gap-2 text-xs">
+              <div className="flex items-center gap-2">
+                <span className="text-slate-400 text-[11px]">Primary Borrower:</span>
+                <span className="font-semibold text-white">{report.verifiedProfile?.matchedName || kycData.fullName}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-slate-400 text-[11px]">Validated PAN:</span>
+                <span className="font-mono font-bold text-amber-400">{report.verifiedProfile?.matchedPan || kycData.panNumber}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-slate-400 text-[11px]">Bureau Score:</span>
+                <span className="font-bold text-rose-400">{report.score} / 900 ({report.scoreBand.toUpperCase()})</span>
+              </div>
+            </div>
+
+            {/* User Confirmation Checkbox */}
+            <label className="flex items-start gap-3 p-3 rounded-xl bg-slate-900/90 border border-amber-500/40 cursor-pointer hover:bg-slate-900 transition-colors">
+              <input
+                type="checkbox"
+                checked={isSummaryConfirmed}
+                onChange={(e) => {
+                  setIsSummaryConfirmed(e.target.checked);
+                  if (e.target.checked) setConfirmationError("");
+                }}
+                className="mt-0.5 w-4 h-4 rounded border-amber-500/60 text-amber-500 focus:ring-amber-400 bg-navy-950 cursor-pointer"
+              />
+              <div className="text-xs text-slate-300 leading-relaxed">
+                <span className="font-semibold text-amber-300">I confirm and verify the extracted CIBIL metrics above</span> (Total Debt: ₹{(report.accounts.reduce((sum, a) => sum + (a.sanctionedAmount || a.currentBalance || 0), 0) || report.summary.totalOutstanding).toLocaleString("en-IN")}, Active Accounts: {report.accounts.length}, Overdue Balance: ₹{report.summary.totalOverdue.toLocaleString("en-IN")}) and authorize Savrdh's AI Legal Engine to proceed to Deep Dispute & Resolution Modeling.
+              </div>
+            </label>
+
+            {confirmationError && (
+              <p className="text-xs text-rose-400 bg-rose-500/10 border border-rose-500/20 p-2.5 rounded-xl flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                <span>{confirmationError}</span>
+              </p>
+            )}
+          </div>
+
           <button
             type="button"
-            onClick={() => onProceedToAnalysis(report)}
-            className="w-full py-3.5 px-4 rounded-xl bg-gold-gradient text-navy-950 font-bold text-sm shadow-lg shadow-amber-500/25 hover:brightness-110 active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer"
+            onClick={() => {
+              if (!isSummaryConfirmed) {
+                setConfirmationError("Please confirm the extracted CIBIL metrics summary above before proceeding to AI analysis.");
+                return;
+              }
+              onProceedToAnalysis(report);
+            }}
+            className={`w-full py-3.5 px-4 rounded-xl font-bold text-sm shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer ${
+              isSummaryConfirmed
+                ? "bg-gold-gradient text-navy-950 shadow-amber-500/25 hover:brightness-110 active:scale-[0.98]"
+                : "bg-slate-800 hover:bg-slate-700 text-amber-300 border border-amber-500/40"
+            }`}
           >
-            <span>Proceed to CIBIL Analysis & Resolution Plans</span>
+            <span>Proceed to CIBIL Analysis & Resolution Plans (Step 5 of 8)</span>
             <ArrowRight className="w-4 h-4 stroke-[2.5]" />
           </button>
 
