@@ -58,7 +58,7 @@ import {
   SAVRDH_COMPANY_INFO
 } from "../../data/mockData";
 import { BrandLogo } from "../common/BrandLogo";
-import { askAdvisorSmartReply } from "../../services/api";
+import { askAdvisorSmartReply, uploadLeadDocumentApi } from "../../services/api";
 
 interface DashboardProps {
   userProfile: UserProfile;
@@ -137,7 +137,7 @@ export const CustomerDashboard: React.FC<DashboardProps> = ({
         fileSize: "1.6 MB",
         uploadedAt: "Today",
         status: "VERIFIED",
-        notes: `Masked UIDAI ID: ${kycData.maskedAadhaar || "XXXX-XXXX-9283"}.`,
+        notes: `Masked UIDAI ID: ${kycData.maskedAadhaar || "XXXX-XXXX-XXXX"}.`,
       });
     }
 
@@ -245,8 +245,9 @@ export const CustomerDashboard: React.FC<DashboardProps> = ({
     if (!file) return;
 
     setIsUploading(true);
-    setTimeout(() => {
-      setIsUploading(false);
+    const reader = new FileReader();
+    reader.onload = async (ev) => {
+      const base64 = ev.target?.result as string;
       const newDoc: UploadedDoc = {
         id: `doc-${Date.now()}`,
         category: uploadCategory,
@@ -255,12 +256,26 @@ export const CustomerDashboard: React.FC<DashboardProps> = ({
         fileSize: `${(file.size / (1024 * 1024)).toFixed(1)} MB`,
         uploadedAt: "Just now",
         status: "UNDER_REVIEW",
-        notes: "Uploaded by customer. Assigned to legal team review queue.",
+        notes: "Uploaded by customer via portal. Stored in encrypted vault.",
+        dataUrl: base64,
       };
       setDocuments((prev) => [newDoc, ...prev]);
+
+      // Sync with Admin CRM Lead endpoint
+      await uploadLeadDocumentApi(userProfile.id || "lead-1", {
+        category: uploadCategory,
+        title: file.name.replace(/\.[^/.]+$/, ""),
+        fileName: file.name,
+        fileSize: `${(file.size / (1024 * 1024)).toFixed(1)} MB`,
+        dataUrl: base64,
+        notes: "Uploaded by customer from client portal.",
+      });
+
+      setIsUploading(false);
       setUploadSuccessMsg(`Document "${file.name}" uploaded successfully for legal verification!`);
       setTimeout(() => setUploadSuccessMsg(""), 3500);
-    }, 1200);
+    };
+    reader.readAsDataURL(file);
   };
 
   const handleMarkNotifRead = (id: string) => {
@@ -334,10 +349,10 @@ export const CustomerDashboard: React.FC<DashboardProps> = ({
                   />
                   <div>
                     <h2 className="text-xs font-bold text-slate-100">
-                      {userProfile.fullName || "Rajeshwar Sharma"}
+                      {kycData.fetchedProfile?.name || userProfile.fullName || creditReport.verifiedProfile?.matchedName || "Valued Client"}
                     </h2>
                     <span className="text-[10px] text-slate-400 font-mono">
-                      Aadhaar: {kycData.maskedAadhaar}
+                      Aadhaar: {kycData.maskedAadhaar || "XXXX-XXXX-XXXX"}
                     </span>
                   </div>
                 </div>

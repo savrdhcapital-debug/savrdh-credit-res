@@ -166,6 +166,25 @@ export default function App() {
   // Step 4 Completed
   const handleProceedToAnalysis = (report: CreditBureauReport) => {
     setCreditReport(report);
+    if (report.verifiedProfile?.matchedName && report.verifiedProfile.matchedName !== "Customer") {
+      setUserProfile((prev) => ({
+        ...prev,
+        fullName: report.verifiedProfile!.matchedName,
+      }));
+    }
+    if (report.verifiedProfile?.matchedPan) {
+      setKycData((prev) => ({
+        ...prev,
+        panNumber: report.verifiedProfile!.matchedPan,
+        isPanVerified: true,
+        fetchedProfile: {
+          ...prev.fetchedProfile,
+          name: report.verifiedProfile?.matchedName || prev.fetchedProfile?.name || "",
+          address: report.verifiedProfile?.matchedAddress || prev.fetchedProfile?.address || "",
+          dob: report.verifiedProfile?.matchedDob || prev.fetchedProfile?.dob || "",
+        },
+      }));
+    }
     setCurrentStep("CREDIT_ANALYSIS");
   };
 
@@ -395,10 +414,29 @@ export default function App() {
               <X className="w-5 h-5" />
             </button>
             <CibilReportAnalyzer
-              initialReport={creditReport}
+              initialReport={undefined}
               onClose={() => setActiveStandaloneTool(null)}
               onApplyToApp={(newReport) => {
                 setCreditReport(newReport);
+                if (newReport.verifiedProfile?.matchedName && newReport.verifiedProfile.matchedName !== "Customer") {
+                  setUserProfile((prev) => ({
+                    ...prev,
+                    fullName: newReport.verifiedProfile!.matchedName,
+                  }));
+                }
+                if (newReport.verifiedProfile?.matchedPan) {
+                  setKycData((prev) => ({
+                    ...prev,
+                    panNumber: newReport.verifiedProfile!.matchedPan,
+                    isPanVerified: true,
+                    fetchedProfile: {
+                      ...prev.fetchedProfile,
+                      name: newReport.verifiedProfile?.matchedName || prev.fetchedProfile?.name || "",
+                      address: newReport.verifiedProfile?.matchedAddress || prev.fetchedProfile?.address || "",
+                      dob: newReport.verifiedProfile?.matchedDob || prev.fetchedProfile?.dob || "",
+                    },
+                  }));
+                }
                 if (currentStep === "SPLASH" || currentStep === "REGISTRATION" || currentStep === "KYC") {
                   setCurrentStep("CREDIT_REPORT");
                 }

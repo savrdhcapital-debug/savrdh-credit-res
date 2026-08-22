@@ -36,22 +36,23 @@ export const BureauDocketModal: React.FC<BureauDocketModalProps> = ({
     report.verifiedProfile?.matchedName ||
     kycData?.fetchedProfile?.name ||
     userProfile?.fullName ||
-    "Customer";
+    "Borrower Name";
 
   const borrowerDob =
     report.verifiedProfile?.matchedDob ||
     kycData?.fetchedProfile?.dob ||
-    "14/06/1988";
+    "On Record";
 
   const borrowerPan =
     report.verifiedProfile?.matchedPan ||
     kycData?.panNumber ||
-    "ABCDE1234F";
+    "PAN On Record";
 
   const borrowerAddress =
     report.verifiedProfile?.matchedAddress ||
     kycData?.fetchedProfile?.address ||
-    "Flat 402, Royal Palms, Goregaon East, Mumbai, Maharashtra 400065";
+    userProfile?.cityState ||
+    "Address on Record as per KYC";
 
   const isTransUnion = (report.bureauName || "").toLowerCase().includes("transunion") || (report.bureauName || "").toLowerCase().includes("cibil");
   const isExperian = (report.bureauName || "").toLowerCase().includes("experian");

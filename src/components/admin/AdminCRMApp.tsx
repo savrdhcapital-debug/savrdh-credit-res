@@ -26,18 +26,22 @@ import {
   ArrowLeft,
   AlertTriangle,
   Key,
+  Briefcase,
+  UserCheck,
 } from "lucide-react";
-import { AdminUser, AdminLeadDetail, AdminStats } from "../../types";
+import { AdminUser, AdminLeadDetail, AdminStats, TeamMember } from "../../types";
 import {
   fetchAdminStatsApi,
   fetchAdminLeadsApi,
   fetchAdminLeadDocketApi,
   deleteLeadApi,
   fetchEmailStatusApi,
+  fetchAdminTeamApi,
 } from "../../services/api";
 import { LeadDocketModal } from "./LeadDocketModal";
 import { CreateManualLeadModal } from "./CreateManualLeadModal";
 import { EmailMonitoringModal } from "./EmailMonitoringModal";
+import { TeamManagementView } from "./TeamManagementView";
 
 interface AdminCRMAppProps {
   adminUser: AdminUser;
@@ -50,9 +54,12 @@ export const AdminCRMApp: React.FC<AdminCRMAppProps> = ({
   onLogout,
   onSwitchToCustomerApp,
 }) => {
+  const [activeTab, setActiveTab] = useState<"LEADS" | "TEAM">("LEADS");
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [leads, setLeads] = useState<AdminLeadDetail[]>([]);
+  const [team, setTeam] = useState<TeamMember[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isTeamLoading, setIsTeamLoading] = useState(false);
   const [isEmailConfigured, setIsEmailConfigured] = useState<boolean>(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedStatusFilter, setSelectedStatusFilter] = useState("ALL");
@@ -64,13 +71,14 @@ export const AdminCRMApp: React.FC<AdminCRMAppProps> = ({
   const loadData = async () => {
     setIsLoading(true);
     try {
-      const [statsRes, leadsRes, emailStatusRes] = await Promise.all([
+      const [statsRes, leadsRes, emailStatusRes, teamRes] = await Promise.all([
         fetchAdminStatsApi(),
         fetchAdminLeadsApi({
           q: searchQuery || undefined,
           status: selectedStatusFilter !== "ALL" ? selectedStatusFilter : undefined,
         }),
         fetchEmailStatusApi(),
+        fetchAdminTeamApi(),
       ]);
 
       if (statsRes.success && statsRes.stats) {
@@ -82,10 +90,27 @@ export const AdminCRMApp: React.FC<AdminCRMAppProps> = ({
       if (emailStatusRes) {
         setIsEmailConfigured(!!emailStatusRes.isConfigured);
       }
+      if (teamRes.success && teamRes.team) {
+        setTeam(teamRes.team);
+      }
     } catch (err) {
       console.error("Error loading admin data:", err);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const loadTeamData = async () => {
+    setIsTeamLoading(true);
+    try {
+      const res = await fetchAdminTeamApi();
+      if (res.success && res.team) {
+        setTeam(res.team);
+      }
+    } catch (err) {
+      console.error("Error loading team data:", err);
+    } finally {
+      setIsTeamLoading(false);
     }
   };
 
@@ -162,6 +187,7 @@ export const AdminCRMApp: React.FC<AdminCRMAppProps> = ({
 
   const statusFilterList = [
     { id: "ALL", label: "All Leads" },
+    { id: "INCOMPLETE", label: "⚡ Incomplete / Action Required" },
     { id: "Under Legal Review", label: "Under Review" },
     { id: "Bank Communication Initiated", label: "Bank Notices" },
     { id: "OTS Negotiation Active", label: "OTS Negotiations" },
@@ -274,8 +300,61 @@ export const AdminCRMApp: React.FC<AdminCRMAppProps> = ({
           </div>
         )}
 
-        {/* Key Metrics Strip */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Primary Navigation Tabs */}
+        <div className="flex items-center gap-2 border-b border-slate-800 pb-3">
+          <button
+            onClick={() => setActiveTab("LEADS")}
+            className={`py-2.5 px-4 rounded-2xl text-xs font-bold flex items-center gap-2 transition-all cursor-pointer ${
+              activeTab === "LEADS"
+                ? "bg-gradient-to-r from-amber-500 to-yellow-500 text-navy-950 shadow-lg shadow-amber-500/20"
+                : "bg-navy-950/80 hover:bg-slate-800 text-slate-300 border border-slate-800"
+            }`}
+          >
+            <FileText className="w-4 h-4" />
+            <span>Client Lead Dockets & Cases</span>
+            <span
+              className={`text-[10px] font-mono px-2 py-0.5 rounded-full ${
+                activeTab === "LEADS" ? "bg-navy-950 text-amber-300 font-bold" : "bg-slate-800 text-slate-300"
+              }`}
+            >
+              {leads.length}
+            </span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab("TEAM")}
+            className={`py-2.5 px-4 rounded-2xl text-xs font-bold flex items-center gap-2 transition-all cursor-pointer ${
+              activeTab === "TEAM"
+                ? "bg-gradient-to-r from-amber-500 to-yellow-500 text-navy-950 shadow-lg shadow-amber-500/20"
+                : "bg-navy-950/80 hover:bg-slate-800 text-slate-300 border border-slate-800"
+            }`}
+          >
+            <Users className="w-4 h-4" />
+            <span>Company Team & Case Officers</span>
+            <span
+              className={`text-[10px] font-mono px-2 py-0.5 rounded-full ${
+                activeTab === "TEAM" ? "bg-navy-950 text-amber-300 font-bold" : "bg-slate-800 text-slate-300"
+              }`}
+            >
+              {team.length}
+            </span>
+          </button>
+        </div>
+
+        {activeTab === "TEAM" ? (
+          <TeamManagementView
+            team={team}
+            isLoading={isTeamLoading}
+            onRefresh={loadTeamData}
+            onShowToast={(msg) => {
+              setFeedbackToast(msg);
+              setTimeout(() => setFeedbackToast(null), 4000);
+            }}
+          />
+        ) : (
+          <>
+            {/* Key Metrics Strip */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {/* Card 1: Total Leads */}
           <div className="p-4 rounded-2xl bg-[#0B1324] border border-slate-800/90 shadow-lg shadow-black/40 space-y-1">
             <div className="flex items-center justify-between text-slate-400 text-xs">
@@ -451,21 +530,39 @@ export const AdminCRMApp: React.FC<AdminCRMAppProps> = ({
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-800/60">
-                  {leads.map((lead) => (
+                  {leads.map((lead) => {
+                    const isIncomplete =
+                      !lead.panDocUrl ||
+                      !lead.aadhaarFrontDocUrl ||
+                      !lead.cibilAnalysis ||
+                      (lead.creditScore || 0) === 0 ||
+                      (lead.caseStatus || "").toLowerCase().includes("review") ||
+                      (lead.caseStatus || "").toLowerCase().includes("pending");
+
+                    return (
                     <tr
                       key={lead.leadId}
-                      className="hover:bg-slate-800/40 transition-colors group cursor-pointer"
+                      className={`transition-colors group cursor-pointer ${
+                        isIncomplete ? "bg-amber-500/[0.03] hover:bg-amber-500/[0.08]" : "hover:bg-slate-800/40"
+                      }`}
                       onClick={() => handleOpenLeadDocket(lead.leadId)}
                     >
                       {/* Customer Name & Ref */}
                       <td className="py-3.5 px-4">
                         <div className="flex items-center gap-2.5">
-                          <div className="w-8 h-8 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400 font-bold text-xs flex-shrink-0">
+                          <div className={`w-8 h-8 rounded-xl flex items-center justify-center font-bold text-xs flex-shrink-0 ${
+                            isIncomplete ? "bg-amber-500/20 text-amber-300 border border-amber-500/40" : "bg-amber-500/10 text-amber-400 border border-amber-500/20"
+                          }`}>
                             {lead.customerName.charAt(0)}
                           </div>
                           <div>
                             <div className="font-bold text-white text-sm group-hover:text-amber-300 transition-colors flex items-center gap-1.5">
                               <span>{lead.customerName}</span>
+                              {isIncomplete && (
+                                <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                                  Action Required
+                                </span>
+                              )}
                             </div>
                             <span className="font-mono text-[10px] text-slate-400">
                               {lead.crmReferenceId}
@@ -500,12 +597,14 @@ export const AdminCRMApp: React.FC<AdminCRMAppProps> = ({
                             </span>
                             <span
                               className={`text-[9px] px-1.5 py-0.2 rounded font-semibold ${
-                                (lead.creditScore || 0) < 650
+                                (lead.creditScore || 0) === 0
+                                  ? "bg-amber-950 text-amber-300 border border-amber-800/60"
+                                  : (lead.creditScore || 0) < 650
                                   ? "bg-rose-950 text-rose-300"
                                   : "bg-emerald-950 text-emerald-300"
                               }`}
                             >
-                              {lead.scoreBand || "Audited"}
+                              {(lead.creditScore || 0) === 0 ? "Pending Audit" : lead.scoreBand || "Audited"}
                             </span>
                           </div>
                           <div className="text-[11px] text-rose-400 font-mono font-semibold">
@@ -532,24 +631,24 @@ export const AdminCRMApp: React.FC<AdminCRMAppProps> = ({
                       <td className="py-3.5 px-4">
                         <div className="flex gap-1.5 flex-wrap">
                           <span
-                            title={lead.panDocUrl ? "PAN Card Uploaded" : "PAN Document"}
+                            title={lead.panDocUrl ? "PAN Card Uploaded" : "PAN Document Pending"}
                             className={`text-[10px] px-2 py-0.5 rounded-lg border font-mono ${
                               lead.panDocUrl
                                 ? "bg-emerald-950 text-emerald-300 border-emerald-800"
-                                : "bg-slate-800 text-slate-400 border-slate-700"
+                                : "bg-rose-950/40 text-rose-300 border-rose-800/40"
                             }`}
                           >
-                            PAN ✓
+                            PAN {lead.panDocUrl ? "✓" : "⏳"}
                           </span>
                           <span
-                            title={lead.aadhaarFrontDocUrl ? "Aadhaar Uploaded" : "Aadhaar Card"}
+                            title={lead.aadhaarFrontDocUrl ? "Aadhaar Uploaded" : "Aadhaar Card Pending"}
                             className={`text-[10px] px-2 py-0.5 rounded-lg border font-mono ${
                               lead.aadhaarFrontDocUrl
                                 ? "bg-emerald-950 text-emerald-300 border-emerald-800"
-                                : "bg-slate-800 text-slate-400 border-slate-700"
+                                : "bg-rose-950/40 text-rose-300 border-rose-800/40"
                             }`}
                           >
-                            Aadhaar ✓
+                            Aadhaar {lead.aadhaarFrontDocUrl ? "✓" : "⏳"}
                           </span>
                           <span
                             title="Letter of Authority Signed"
@@ -577,15 +676,19 @@ export const AdminCRMApp: React.FC<AdminCRMAppProps> = ({
                         <div className="flex items-center justify-end gap-1.5">
                           <button
                             onClick={() => handleOpenLeadDocket(lead.leadId)}
-                            className="py-1.5 px-2.5 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 text-xs font-bold flex items-center gap-1 transition-colors"
+                            className={`py-1.5 px-3 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+                              isIncomplete
+                                ? "bg-gradient-to-r from-amber-500 to-yellow-500 text-navy-950 shadow-md shadow-amber-500/20 hover:brightness-110"
+                                : "bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30"
+                            }`}
                           >
                             <Eye className="w-3.5 h-3.5" />
-                            <span>Docket</span>
+                            <span>{isIncomplete ? "Work on Lead" : "Docket"}</span>
                           </button>
 
                           <button
                             onClick={() => handleDeleteLead(lead.leadId, lead.customerName)}
-                            className="p-1.5 rounded-lg bg-slate-800 hover:bg-rose-950 text-slate-400 hover:text-rose-300 border border-slate-700 transition-colors"
+                            className="p-1.5 rounded-lg bg-slate-800 hover:bg-rose-950 text-slate-400 hover:text-rose-300 border border-slate-700 transition-colors cursor-pointer"
                             title="Delete Lead Docket"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
@@ -593,18 +696,22 @@ export const AdminCRMApp: React.FC<AdminCRMAppProps> = ({
                         </div>
                       </td>
                     </tr>
-                  ))}
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
           )}
         </div>
+          </>
+        )}
       </main>
 
       {/* Modals */}
       {selectedLeadForDocket && (
         <LeadDocketModal
           lead={selectedLeadForDocket}
+          team={team}
           isOpen={true}
           onClose={() => setSelectedLeadForDocket(null)}
           onLeadUpdated={() => {
@@ -619,6 +726,7 @@ export const AdminCRMApp: React.FC<AdminCRMAppProps> = ({
       {isCreateModalOpen && (
         <CreateManualLeadModal
           isOpen={true}
+          team={team}
           onClose={() => setIsCreateModalOpen(false)}
           onLeadCreated={() => {
             setFeedbackToast("New client lead docket added successfully.");

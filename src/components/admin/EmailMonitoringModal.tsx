@@ -528,7 +528,7 @@ export const EmailMonitoringModal: React.FC<EmailMonitoringModalProps> = ({
                         Reference No: <strong className="font-mono bg-white px-1.5 py-0.5 rounded border border-emerald-200">SAV-LOA-2026-23210</strong>
                       </div>
                       <p className="text-[11px] text-slate-600 leading-normal">
-                        Savrdh Financial Services & Adv. Vikram Malhotra are now formally authorized to represent you before CIBIL and your lending banks.
+                        Savrdh Financial Services Private Limited is now formally authorized to represent you before CIBIL and your lending banks.
                       </p>
                     </div>
                   </div>

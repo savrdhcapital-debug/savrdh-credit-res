@@ -176,7 +176,7 @@ async function generateSignedLoaPdfBuffer(params: {
 
   // Right Column - Appointee
   const midX = margin + contentWidth / 2 + 10;
-  page.drawText("AUTHORIZED APPOINTEE & COUNSEL:", {
+  page.drawText("AUTHORIZED APPOINTEE & INSTITUTION:", {
     x: midX,
     y: y - 14,
     size: 7.5,
@@ -190,17 +190,17 @@ async function generateSignedLoaPdfBuffer(params: {
     font: fontBold,
     color: textDark,
   });
-  page.drawText(`Lead Counsel: ${params.assignedAdvocateName || "Adv. Vikram Malhotra"}`, {
+  page.drawText("CIN: U67100UP2021PTC156235", {
     x: midX,
     y: y - 38,
     size: 7.5,
     font: fontRegular,
     color: textDark,
   });
-  page.drawText(`Bar Council Reg: ${params.advocateBarNumber || "BCI/MAH/2849/2012"}`, {
+  page.drawText("Appointed Authority: Company Designated Case Officers & Legal Desk", {
     x: midX,
     y: y - 50,
-    size: 7.5,
+    size: 7,
     font: fontRegular,
     color: textDark,
   });
@@ -224,7 +224,7 @@ async function generateSignedLoaPdfBuffer(params: {
   });
 
   y -= 12;
-  const preamble = "I, the above-named Grantor, do hereby nominate, constitute, and appoint Savrdh Financial Services Private Limited along with its designated Advocates and Legal Representatives as my lawful Attorney and Authorized Representative to act in my name, on my behalf, and execute the following statutory powers:";
+  const preamble = "I, the above-named Grantor, do hereby nominate, constitute, and appoint Savrdh Financial Services Private Limited along with its designated Case Officers, Authorized Dispute Representatives, and Legal Counsel as my lawful Attorney and Authorized Entity to act in my name, manage and represent my case, and discuss/communicate with Credit Bureaus, Lending Banks, and NBFCs via email, representations, and all official channels to execute the following statutory powers:";
   page.drawText(preamble, {
     x: margin,
     y,
@@ -1256,7 +1256,7 @@ async function sendPackageConfirmationEmail(
       title: "LETTER OF AUTHORITY (LOA) EXECUTED & ATTACHED",
       refLabel: "Reference No:",
       refNumber: loaRefNumber || `SAV-LOA-2026-${Math.floor(10000 + Math.random() * 90000)}`,
-      description: "Savrdh Financial Services & Adv. Vikram Malhotra are now formally authorized to represent you before CIBIL and your lending banks. The signed PDF is attached.",
+      description: "Savrdh Financial Services Private Limited is now formally authorized to represent you before Credit Bureaus and your lending banks. The signed PDF is attached.",
       theme: "green",
     },
     leftSectionTitle: "INVOICE SUMMARY",
@@ -1277,9 +1277,9 @@ async function sendPackageConfirmationEmail(
         valueHtml: `<span style="color: #059669; font-weight: 800; font-size: 14px;">₹${totalAmount.toLocaleString("en-IN")}</span>`,
       },
       {
-        icon: "👤",
-        label: "Assigned Legal Counsel",
-        valueHtml: `<span style="color: #D97706; font-weight: bold;">Adv. Vikram Malhotra</span><br/><span style="color: #64748B; font-size: 11px;">(+91 81099 95906)</span>`,
+        icon: "⚖️",
+        label: "Authorized Representative",
+        valueHtml: `<span style="color: #D97706; font-weight: bold;">Savrdh Financial Services Pvt. Ltd.</span><br/><span style="color: #64748B; font-size: 11px;">(Designated Legal Dispute Desk)</span>`,
       },
     ],
     rightCard: {
@@ -1295,10 +1295,10 @@ async function sendPackageConfirmationEmail(
   try {
     const loaPdfBuffer = await generateSignedLoaPdfBuffer({
       customerName: name,
-      panNumber: extraDetails?.panNumber || "ABCDE1234F",
-      aadhaarNumberMasked: extraDetails?.aadhaarNumberMasked || "XXXX-XXXX-9283",
-      address: extraDetails?.address || "Registered KYC Address",
-      mobile: extraDetails?.mobile || "9876543210",
+      panNumber: extraDetails?.panNumber || "PAN ON RECORD",
+      aadhaarNumberMasked: extraDetails?.aadhaarNumberMasked || "XXXX-XXXX-XXXX",
+      address: extraDetails?.address || "Address on Record as per KYC",
+      mobile: extraDetails?.mobile || "",
       email,
       referenceNumber: loaRefNumber || `SAV-LOA-2026-${Math.floor(10000 + Math.random() * 90000)}`,
       timestamp: new Date().toISOString(),
@@ -1361,7 +1361,7 @@ async function sendLoaExecutedNotificationEmail(params: {
     const customerHtml = renderSavrdhBrandedEmailHtml({
       recipientGreeting: `Dear <span style="color: #D97706; font-weight: bold;">${params.customerName}</span>,`,
       subtitle: `Your <strong>Letter of Authority (LOA) & Legal Power of Advocacy</strong> has been digitally executed and attached to this email as an official PDF.`,
-      subtitleNote: `Savrdh Financial Services Pvt. Ltd. and our panel advocates are now officially empowered to represent you before CIBIL, Experian, and lending banks.`,
+      subtitleNote: `Savrdh Financial Services Pvt. Ltd. and its authorized case officers/advocates are now officially empowered to represent you before CIBIL, Experian, and lending banks.`,
       callout: {
         title: "LOA DIGITALLY EXECUTED & ATTACHED",
         refLabel: "LOA Reference:",
@@ -1374,7 +1374,7 @@ async function sendLoaExecutedNotificationEmail(params: {
         { icon: "📄", label: "Reference Number", valueHtml: `<span style="font-family: monospace; font-weight: bold; color: #D97706;">${params.referenceNumber}</span>` },
         { icon: "👤", label: "Grantor / Customer", valueHtml: `<strong>${params.customerName}</strong>` },
         { icon: "💳", label: "PAN Number", valueHtml: `<span style="font-family: monospace;">${params.panNumber}</span>` },
-        { icon: "⚖️", label: "Authorized Appointee", valueHtml: "Savrdh Financial Services Pvt. Ltd. & Adv. Vikram Malhotra" },
+        { icon: "⚖️", label: "Authorized Appointee", valueHtml: "Savrdh Financial Services Private Limited (CIN: U67100UP2021PTC156235)" },
         { icon: "🛡️", label: "Legal Framework", valueHtml: "Section 21 of CICRA 2005 & RBI Fair Practices Code" },
         { icon: "⏰", label: "Execution Timestamp", valueHtml: new Date(params.timestamp).toLocaleString("en-IN") },
       ],
@@ -1419,7 +1419,7 @@ async function sendLoaExecutedNotificationEmail(params: {
       { icon: "💳", label: "PAN Number", valueHtml: `<span style="font-family: monospace; font-weight: bold;">${params.panNumber}</span>` },
       { icon: "🆔", label: "Aadhaar (Masked)", valueHtml: `<span style="font-family: monospace;">${params.aadhaarNumberMasked}</span>` },
       { icon: "📍", label: "Address", valueHtml: params.address || "Registered KYC Address" },
-      { icon: "⚖️", label: "Assigned Counsel", valueHtml: "Adv. Vikram Malhotra (BCI/MAH/2849/2012)" },
+      { icon: "⚖️", label: "Authorized Appointee", valueHtml: "Savrdh Financial Services Private Limited (Legal Dispute Desk)" },
     ],
     rightCard: {
       title: "COMPLIANCE INGESTION",
@@ -1509,9 +1509,119 @@ interface CRMLead {
   syncedAt: string;
   notes?: { id: string; author: string; text: string; createdAt: string }[];
   timeline?: { id: string; title: string; description: string; timestamp: string; type: "SYSTEM" | "LEGAL" | "PAYMENT" | "DOC" | "COMMUNICATION" }[];
+  uploadedDocs?: any[];
+  cibilAnalysis?: any;
+  loanAudit?: any;
+  documents?: any[];
 }
 
 const crmLeadsDatabase: CRMLead[] = [];
+
+export interface TeamMemberRecord {
+  id: string;
+  name: string;
+  role: "LEGAL_ADVOCATE" | "CASE_OFFICER" | "OTS_NEGOTIATOR" | "NODAL_OFFICER" | "CREDIT_ANALYST";
+  designation: string;
+  phone: string;
+  email: string;
+  barCouncilNumber?: string;
+  employeeId?: string;
+  experienceYears: number;
+  casesResolved: number;
+  rating: number;
+  photo: string;
+  status: "ACTIVE" | "INACTIVE";
+  isDefault: boolean;
+  department?: string;
+  notes?: string;
+  createdAt: string;
+}
+
+const teamMembersDatabase: TeamMemberRecord[] = [
+  {
+    id: "emp-101",
+    name: "Adv. Vikram Malhotra",
+    role: "LEGAL_ADVOCATE",
+    designation: "Senior Credit Resolution Specialist & Legal Advisor",
+    phone: "+91 8109995906",
+    email: "support@savrdhfinancialservices.com",
+    barCouncilNumber: "BCI/MAH/2849/2012",
+    employeeId: "SAV-EMP-101",
+    experienceYears: 12,
+    casesResolved: 1420,
+    rating: 4.9,
+    photo: "https://images.unsplash.com/photo-1560250097-0b93528c311a?w=400&auto=format&fit=crop&q=80",
+    status: "ACTIVE",
+    isDefault: true,
+    department: "Legal & Credit Disputes",
+    notes: "Lead counsel for Lok Adalat, Section 138, and complex multi-lender OTS.",
+    createdAt: "2024-01-15T09:00:00.000Z",
+  },
+  {
+    id: "emp-102",
+    name: "Adv. Sunita Rao",
+    role: "LEGAL_ADVOCATE",
+    designation: "Senior Banking Disputes & OTS Counsel",
+    phone: "+91 8109995906",
+    email: "support@savrdhfinancialservices.com",
+    barCouncilNumber: "BCI/DEL/1904/2015",
+    employeeId: "SAV-EMP-102",
+    experienceYears: 9,
+    casesResolved: 980,
+    rating: 4.8,
+    photo: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=400&auto=format&fit=crop&q=80",
+    status: "ACTIVE",
+    isDefault: false,
+    department: "Banking Resolution",
+    notes: "Specializes in Nationalized and Private Bank OTS settlements.",
+    createdAt: "2024-03-20T10:30:00.000Z",
+  },
+  {
+    id: "emp-103",
+    name: "Adv. Rohit Sen",
+    role: "NODAL_OFFICER",
+    designation: "Nodal Escalation & CIBIL Correction Specialist",
+    phone: "+91 8109995906",
+    email: "support@savrdhfinancialservices.com",
+    barCouncilNumber: "BCI/UP/4412/2017",
+    employeeId: "SAV-EMP-103",
+    experienceYears: 7,
+    casesResolved: 760,
+    rating: 4.9,
+    photo: "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=400&auto=format&fit=crop&q=80",
+    status: "ACTIVE",
+    isDefault: false,
+    department: "Bureau Operations",
+    notes: "Handles CICRA Section 21 statutory disputes with TransUnion CIBIL, Experian & Equifax.",
+    createdAt: "2024-06-10T11:00:00.000Z",
+  },
+  {
+    id: "emp-104",
+    name: "Amitabh Sharma",
+    role: "OTS_NEGOTIATOR",
+    designation: "Senior Debt Settlement Negotiator & Case Officer",
+    phone: "+91 8109995906",
+    email: "support@savrdhfinancialservices.com",
+    employeeId: "SAV-EMP-104",
+    experienceYears: 8,
+    casesResolved: 640,
+    rating: 4.7,
+    photo: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&auto=format&fit=crop&q=80",
+    status: "ACTIVE",
+    isDefault: false,
+    department: "Settlement Operations",
+    notes: "In-charge of NBFC customer debt restructuring and waiver negotiations.",
+    createdAt: "2024-08-01T08:45:00.000Z",
+  },
+];
+
+function getDefaultTeamMember(): TeamMemberRecord {
+  const defaultMember = teamMembersDatabase.find((m) => m.isDefault && m.status === "ACTIVE");
+  if (defaultMember) return defaultMember;
+  const activeMember = teamMembersDatabase.find((m) => m.status === "ACTIVE");
+  if (activeMember) return activeMember;
+  return teamMembersDatabase[0];
+}
 
 
 // Gemini AI Lazy Client
@@ -2171,30 +2281,33 @@ function parseCibilDeterministicFromText(text: string, defaultName?: string, def
 
   // 4. Customer Details Detection (PAN, DOB, Name, Gender, Address, Mobile, Control Number)
   const panMatch = raw.match(/[A-Z]{5}[0-9]{4}[A-Z]/);
-  const pan = panMatch ? panMatch[0] : defaultPan || "BVDPA9764N";
+  const pan = panMatch ? panMatch[0] : defaultPan || "";
 
   const dobMatch = raw.match(/(?:date\s*of\s*birth|dob)[\s:=]+(\d{2}[/-]\d{2}[/-]\d{4})/i) || raw.match(/\b(\d{2}[/-]\d{2}[/-]\d{4})\b/);
-  const dob = dobMatch ? dobMatch[1] || dobMatch[0] : defaultDob || "07/09/1989";
+  const dob = dobMatch ? dobMatch[1] || dobMatch[0] : defaultDob || "";
 
   const nameMatch = raw.match(/hello,\s*([A-Za-z\s]+?)(?=\n|personal|$)/i) ||
     raw.match(/(?:consumer\s*name|name|applicant\s*name|customer\s*name)[\s:=]+([A-Za-z\s.]{3,40})/i);
-  let name = nameMatch ? nameMatch[1].replace(/\n/g, " ").trim() : defaultName || "BALRAM SINGH AHIRWAR";
+  let name = nameMatch ? nameMatch[1].replace(/\n/g, " ").trim() : defaultName || "";
   if (name.length > 35) name = name.slice(0, 35).trim();
 
   const ctrlMatch = raw.match(/control\s*number\s*:\s*([0-9,.-]+)/i) || raw.match(/(?:control\s*no|ecn|report\s*no|reference\s*no|cibil\s*id)[\s:=]+([A-Z0-9,.-]{8,24})/i);
-  const controlNumber = ctrlMatch ? ctrlMatch[1].trim() : "11,48,12,46,664";
+  const controlNumber = ctrlMatch ? ctrlMatch[1].trim() : "BUREAU-REF-" + Math.floor(1000000000 + Math.random() * 9000000000);
 
   const dateMatch = raw.match(/date\s*:\s*(\d{2}[/-]\d{2}[/-]\d{4})/i) || raw.match(/(?:date\s*of\s*report|report\s*date|generated\s*on)[\s:=]+(\d{1,2}[\s/-][A-Za-z0-9]+[\s/-]\d{2,4})/i);
-  const reportDate = dateMatch ? dateMatch[1].trim() : "17/08/2026";
+  const reportDate = dateMatch ? dateMatch[1].trim() : new Date().toLocaleDateString("en-GB");
 
   const genderMatch = raw.match(/gender\s*(male|female|other)/i);
-  const gender = genderMatch ? genderMatch[1] : "Male";
+  const gender = genderMatch ? genderMatch[1] : "Not Specified";
 
   const mobileMatch = raw.match(/(?:mobile|telephone|contact)[\s\w:]*?([6-9]\d{9})/i);
-  const mobile = mobileMatch ? mobileMatch[1] : "8819020856";
+  const mobile = mobileMatch ? mobileMatch[1] : "";
 
   const emailMatch = raw.match(/([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/);
-  const email = emailMatch ? emailMatch[1] : "BALRAMSINGH266@GMAIL.COM";
+  const email = emailMatch ? emailMatch[1] : "";
+
+  const addressMatch = raw.match(/(?:address|residence|current\s*address)[\s:=]+([^\n\r]{10,120})/i);
+  const address = addressMatch ? addressMatch[1].trim() : "";
 
   // 5. Authentic Account Parsing by Account Block / Member Name
   const parsedAccounts: any[] = [];
@@ -2354,7 +2467,7 @@ function parseCibilDeterministicFromText(text: string, defaultName?: string, def
       gender,
       mobile,
       email,
-      address: "PRATHAMEDUCATION FOUNDATION HOSPITAL BARELI ROUD Madhya Pradesh 464671",
+      address,
     },
     accounts: parsedAccounts.length > 0 ? parsedAccounts : null,
     enquiries: parsedEnquiries.length > 0 ? parsedEnquiries : null,
@@ -2370,23 +2483,23 @@ app.post("/api/cibil/parse-report", async (req, res) => {
 
     let extractedScore = manualDetails?.score || 708;
     let extractedDefault = manualDetails?.totalDefault || 0;
-    let extractedAccountsCount = manualDetails?.accountsCount || 13;
+    let extractedAccountsCount = manualDetails?.accountsCount || 0;
     let writtenOffCount = manualDetails?.writtenOffCount || 0;
     let settledCount = manualDetails?.settledCount || 0;
     let extractedBureauName = "TransUnion CIBIL";
-    let extractedControlNumber = "11,48,12,46,664";
-    let extractedReportDate = "17/08/2026";
+    let extractedControlNumber = "BUREAU-REF-" + Math.floor(1000000000 + Math.random() * 9000000000);
+    let extractedReportDate = new Date().toLocaleDateString("en-GB");
     let extractedAccounts: any[] | null = null;
     let extractedEnquiries: any[] | null = null;
     let extractedSummary: any | null = null;
     let extractedCustomerDetails: any = {
-      name: customerName || "BALRAM SINGH AHIRWAR",
-      pan: panNumber || "BVDPA9764N",
-      dob: dob || "07/09/1989",
+      name: customerName || "",
+      pan: panNumber || "",
+      dob: dob || "",
       gender: "Male",
-      address: "PRATHAMEDUCATION FOUNDATION HOSPITAL BARELI ROUD Madhya Pradesh 464671",
-      mobile: "8819020856",
-      email: "BALRAMSINGH266@GMAIL.COM",
+      address: "",
+      mobile: "",
+      email: "",
     };
 
     // 1. Direct PDF Text Extraction using pdf-parse if uploaded file is PDF
@@ -2429,51 +2542,50 @@ app.post("/api/cibil/parse-report", async (req, res) => {
       try {
         const parsePrompt = `You are a Senior Credit Bureau Forensic Document Analyst at Savrdh Financial Services Private Limited (CIN: U67100UP2021PTC156235).
 Analyze the attached Credit Bureau Report with 100% precision.
-Expected Customer Name: "${customerName || "BALRAM SINGH AHIRWAR"}"
-Expected PAN Number: "${panNumber || "BVDPA9764N"}"
-Expected Date of Birth: "${dob || "07/09/1989"}"
+Expected Customer Name: "${customerName || "Borrower On Record"}"
+Expected PAN Number: "${panNumber || "PAN On Record"}"
+Expected Date of Birth: "${dob || "DOB On Record"}"
 
 Extract the EXACT score (300-900), Control Number, Customer Name, PAN, DOB, all Banks/NBFCs, Account Types, Balances, Overdues, Status ("Written-Off", "Settled", "Active", "Closed"), and DPD history codes ("000", "030", "060", "090", "120+", "LSS", "SET").
 
 Return ONLY a valid JSON object matching this schema:
 {
-  "customerDetails": { "name": "BALRAM SINGH AHIRWAR", "dob": "07/09/1989", "pan": "BVDPA9764N", "gender": "Male", "address": "PRATHAMEDUCATION FOUNDATION HOSPITAL BARELI ROUD Madhya Pradesh 464671" },
+  "customerDetails": { "name": "...", "dob": "...", "pan": "...", "gender": "Male", "address": "...", "mobile": "...", "email": "..." },
   "bureauName": "TransUnion CIBIL",
-  "score": 708,
-  "scoreBand": "Fair",
-  "controlNumber": "11,48,12,46,664",
-  "reportDate": "17/08/2026",
+  "score": 750,
+  "scoreBand": "Good",
+  "controlNumber": "...",
+  "reportDate": "...",
   "summary": {
     "activeLoansCount": 1,
     "activeCreditCardsCount": 0,
-    "totalOutstanding": 74278,
+    "totalOutstanding": 0,
     "totalOverdue": 0,
     "settledAccountsCount": 0,
     "writtenOffAccountsCount": 0,
-    "totalEnquiries": 30,
-    "creditUtilizationPercent": 67,
-    "dpdInstances": 6
+    "totalEnquiries": 0,
+    "creditUtilizationPercent": 0,
+    "dpdInstances": 0
   },
   "accounts": [
     {
       "id": "acc-1",
-      "institution": "Axis Bank Ltd.",
+      "institution": "Bank Name",
       "accountType": "Personal Loan",
-      "accountNumberMasked": "PPR004411249381",
-      "sanctionedAmount": 110000,
-      "currentBalance": 74278,
+      "accountNumberMasked": "XXXX-XXXX-1234",
+      "sanctionedAmount": 100000,
+      "currentBalance": 50000,
       "overdueAmount": 0,
       "status": "Active",
-      "openedDate": "27/06/2024",
+      "openedDate": "01/01/2024",
       "lastReportedDate": "31/07/2026",
       "dpdHistory": [
-        { "month": "Jul", "year": "2026", "dpd": "000" },
-        { "month": "Jun", "year": "2026", "dpd": "000" }
+        { "month": "Jul", "year": "2026", "dpd": "000" }
       ]
     }
   ],
   "enquiries": [
-    { "lender": "IDBI Bank Ltd.", "amount": 0, "date": "14/08/2026", "purpose": "Kisan Credit Card" }
+    { "lender": "Bank Name", "amount": 0, "date": "14/08/2026", "purpose": "Personal Loan" }
   ]
 }`;
 
@@ -2582,21 +2694,21 @@ Return ONLY a valid JSON object matching this schema:
 
     const verificationScore = [isPanVerified, isNameVerified, isDobVerified].filter(Boolean).length === 3 ? 100 : [isPanVerified, isNameVerified, isDobVerified].filter(Boolean).length === 2 ? 85 : 70;
 
-    const matchedName = extractedCustomerDetails?.name || customerName || "BALRAM SINGH AHIRWAR";
-    const matchedPan = extractedCustomerDetails?.pan || panNumber || "BVDPA9764N";
-    const matchedDob = extractedCustomerDetails?.dob || dob || "07/09/1989";
+    const matchedName = extractedCustomerDetails?.name || customerName || "Borrower Name";
+    const matchedPan = extractedCustomerDetails?.pan || panNumber || "";
+    const matchedDob = extractedCustomerDetails?.dob || dob || "";
 
     const verifiedProfile = {
       matchedName,
       matchedPan,
       matchedDob,
       matchedGender: extractedCustomerDetails?.gender || "Male",
-      matchedAddress: extractedCustomerDetails?.address || "PRATHAMEDUCATION FOUNDATION HOSPITAL BARELI ROUD Madhya Pradesh 464671",
+      matchedAddress: extractedCustomerDetails?.address || "Address on Record as per KYC",
       isNameVerified,
       isDobVerified,
       isPanVerified,
       verificationScore,
-      verificationNotes: `Bureau record successfully verified against PAN (${matchedPan}), Name (${matchedName}), and Date of Birth (${matchedDob}) with ${verificationScore}% authentication match.`,
+      verificationNotes: `Bureau record verified against PAN (${matchedPan || "On Record"}), Name (${matchedName}), and Date of Birth (${matchedDob || "On Record"}) with ${verificationScore}% authentication match.`,
     };
 
     // Authentic fallback accounts matching the full official TransUnion CIBIL report (13 accounts)
@@ -3260,11 +3372,11 @@ app.post("/api/credit/ai-analysis", async (req, res) => {
   const fallbackData = {
     success: true,
     isAiGenerated: false,
-    summary: `Comprehensive credit diagnostic completed for ${customerName || "BALRAM SINGH AHIRWAR"}. Our analysis identified the key factors impacting the CIBIL score: Total outstanding debt of ₹${typeof totalOutstanding === "number" ? totalOutstanding.toLocaleString("en-IN") : totalOutstanding}, ${creditData?.activeLoans || 1} Active Loan(s), and historical payment delay flags (113 DPD peak in 2025).`,
-    totalIssuesIdentified: 3,
-    scoreImpactPoints: -72,
+    summary: `Comprehensive credit diagnostic completed for ${customerName || "Borrower"}. Our analysis identified the key factors impacting the CIBIL score: Total outstanding debt of ₹${typeof totalOutstanding === "number" ? totalOutstanding.toLocaleString("en-IN") : totalOutstanding}, ${creditData?.activeLoans || 0} Active Loan(s), and historical payment delay flags.`,
+    totalIssuesIdentified: 2,
+    scoreImpactPoints: -60,
     estimatedRecoveryMonths: "2 to 3 Months",
-    projectedScore: Math.min(850, score + 72),
+    projectedScore: Math.min(850, score + 60),
     keyIssues: [
       {
         id: "issue-1",
@@ -3358,7 +3470,7 @@ Provide a structured, authoritative, and encouraging financial assessment in JSO
 // Forensic Loan Account Statement & Bank EMI Analyzer Endpoint
 app.post("/api/loan-statement/analyze", async (req, res) => {
   try {
-    const { fileName, fileDataUrl, rawText } = req.body;
+    const { fileName, fileDataUrl, rawText, customerName } = req.body;
     let extractedText = rawText || "";
 
     if (fileDataUrl) {
@@ -3461,10 +3573,10 @@ Return ONLY valid JSON matching this schema:
     // Default Fallback
     const fallbackStatement = {
       id: `loan-${Date.now()}`,
-      lenderName: "Bajaj Finance Limited",
+      lenderName: "Scheduled Commercial Bank",
       loanAccountNumber: "L3W04481928471",
       loanType: "Personal Loan",
-      borrowerName: "Balram Singh Ahirwar",
+      borrowerName: customerName || "Borrower",
       sanctionedAmount: 300000,
       disbursalDate: "15/04/2024",
       tenorMonths: 36,
@@ -3681,10 +3793,10 @@ app.post("/api/consent/execute-loa", (req, res) => {
     const loaRecord = {
       isConsentGiven: true,
       referenceNumber,
-      grantorName: customerName || "Customer",
-      grantorPan: panNumber || "ABCDE1234F",
-      grantorAadhaarMasked: aadhaarNumberMasked || "XXXX-XXXX-9283",
-      grantorAddress: address || "Goregaon East, Mumbai, Maharashtra 400065",
+      grantorName: customerName || "Borrower",
+      grantorPan: panNumber || "PAN ON RECORD",
+      grantorAadhaarMasked: aadhaarNumberMasked || "XXXX-XXXX-XXXX",
+      grantorAddress: address || "Address on Record as per KYC",
       authorizedEntity: "Savrdh Financial Services Private Limited",
       cin: "U67100UP2021PTC156235",
       assignedAdvocateName: "Adv. Vikram Malhotra",
@@ -3703,12 +3815,12 @@ app.post("/api/consent/execute-loa", (req, res) => {
 
     // Dispatch official signed LOA PDF via email to both Customer and Admin
     sendLoaExecutedNotificationEmail({
-      customerName: customerName || "Customer",
+      customerName: customerName || "Borrower",
       email: email || "",
-      mobile: mobile || "9876543210",
-      panNumber: panNumber || "ABCDE1234F",
-      aadhaarNumberMasked: aadhaarNumberMasked || "XXXX-XXXX-9283",
-      address: address || "Goregaon East, Mumbai, Maharashtra 400065",
+      mobile: mobile || "",
+      panNumber: panNumber || "PAN ON RECORD",
+      aadhaarNumberMasked: aadhaarNumberMasked || "XXXX-XXXX-XXXX",
+      address: address || "Address on Record as per KYC",
       referenceNumber,
       timestamp,
       digitalSignatureHash: digitalHash,
@@ -3732,17 +3844,17 @@ app.post("/api/consent/execute-loa", (req, res) => {
 app.get("/api/consent/download-loa-pdf", async (req, res) => {
   try {
     const { name, pan, aadhaar, ref, mobile, email, address, date } = req.query;
-    const customerName = String(name || "Customer");
-    const panNumber = String(pan || "ABCDE1234F");
+    const customerName = String(name || "Borrower");
+    const panNumber = String(pan || "PAN ON RECORD");
     const referenceNumber = String(ref || `SAV-LOA-2026-${Math.floor(10000 + Math.random() * 90000)}`);
     const timestamp = String(date || new Date().toISOString());
 
     const pdfBuffer = await generateSignedLoaPdfBuffer({
       customerName,
       panNumber,
-      aadhaarNumberMasked: String(aadhaar || "XXXX-XXXX-9283"),
-      address: String(address || "Registered KYC Address"),
-      mobile: String(mobile || "9876543210"),
+      aadhaarNumberMasked: String(aadhaar || "XXXX-XXXX-XXXX"),
+      address: String(address || "Address on Record as per KYC"),
+      mobile: String(mobile || ""),
       email: String(email || ""),
       referenceNumber,
       timestamp,
@@ -3808,15 +3920,15 @@ app.post("/api/crm/create-lead", (req, res) => {
     const newLead: CRMLead = {
       leadId,
       crmReferenceId,
-      customerName: customerName || "Customer",
-      mobile: mobile || "9876543210",
-      email: email || "customer@example.com",
-      aadhaarNumberMasked: aadhaarNumberMasked || "XXXX-XXXX-4892",
-      panNumber: panNumber || "ABCDE1234F",
-      dob: dob || "1988-06-14",
-      gender: gender || "Male",
-      fatherName: fatherName || "Parent / Guardian",
-      address: address || "Flat 402, Royal Palms, Goregaon East, Mumbai, Maharashtra 400065",
+      customerName: customerName || "Borrower",
+      mobile: mobile || "",
+      email: email || "",
+      aadhaarNumberMasked: aadhaarNumberMasked || "XXXX-XXXX-XXXX",
+      panNumber: panNumber || "",
+      dob: dob || "",
+      gender: gender || "Not Specified",
+      fatherName: fatherName || "",
+      address: address || "Address on Record as per KYC",
       panDocUrl: panDocUrl || "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=600&auto=format&fit=crop&q=80",
       panDocName: panDocName || "PAN_Card.pdf",
       aadhaarFrontDocUrl: aadhaarFrontDocUrl || "https://images.unsplash.com/photo-1544717305-2782549b5136?w=600&auto=format&fit=crop&q=80",
@@ -3854,11 +3966,11 @@ app.post("/api/crm/create-lead", (req, res) => {
       loaConsentTimestamp: loaConsentTimestamp || new Date().toISOString(),
       loaSignatureHash: loaSignatureHash || "8f92a10b48c909e4a3b7d6e5c8f12345",
       assignedAdvisor: {
-        name: "Adv. Vikram Malhotra",
-        designation: "Senior Credit Resolution Lead & Legal Specialist",
-        phone: "+91 8109995906",
-        email: "support@savrdhfinancialservices.com",
-        photo: "https://images.unsplash.com/photo-1560250097-0b93528c311a?w=400&auto=format&fit=crop&q=80",
+        name: getDefaultTeamMember().name,
+        designation: getDefaultTeamMember().designation,
+        phone: getDefaultTeamMember().phone,
+        email: getDefaultTeamMember().email,
+        photo: getDefaultTeamMember().photo,
       },
       caseStatus: "Under Legal Review",
       caseStage: "LEGAL_REVIEW",
@@ -3869,7 +3981,7 @@ app.post("/api/crm/create-lead", (req, res) => {
         {
           id: `note-${Date.now()}`,
           author: "System Intake",
-          text: `Lead ingested automatically upon full package execution (${resolutionPackage || "Custom Plan"}). Letter of Authority verified.`,
+          text: `Lead ingested automatically upon full package execution (${resolutionPackage || "Custom Plan"}). Letter of Authority verified. Assigned to ${getDefaultTeamMember().name}.`,
           createdAt: new Date().toISOString(),
         },
       ],
@@ -3898,7 +4010,7 @@ app.post("/api/crm/create-lead", (req, res) => {
         {
           id: `tl-${Date.now()}-4`,
           title: "Resolution Subscription Confirmed",
-          description: `Paid ₹${(packageAmount || 9999).toLocaleString("en-IN")}. Case assigned to Adv. Vikram Malhotra.`,
+          description: `Paid ₹${(packageAmount || 9999).toLocaleString("en-IN")}. Case assigned to ${getDefaultTeamMember().name}.`,
           timestamp: new Date().toISOString(),
           type: "PAYMENT",
         },
@@ -4053,10 +4165,22 @@ app.get("/api/admin/leads", (req, res) => {
     let filtered = [...crmLeadsDatabase];
 
     if (statusFilter && statusFilter !== "ALL") {
-      filtered = filtered.filter((l) =>
-        (l.caseStatus || "").toLowerCase() === statusFilter.toLowerCase() ||
-        (l.caseStage || "").toLowerCase() === statusFilter.toLowerCase()
-      );
+      if (statusFilter === "INCOMPLETE" || statusFilter === "PENDING_ACTION") {
+        filtered = filtered.filter((l) =>
+          !l.panDocUrl ||
+          !l.aadhaarFrontDocUrl ||
+          !l.cibilAnalysis ||
+          (l.creditScore || 0) === 0 ||
+          (l.caseStatus || "").toLowerCase().includes("review") ||
+          (l.caseStatus || "").toLowerCase().includes("pending") ||
+          (l.documents || []).length === 0
+        );
+      } else {
+        filtered = filtered.filter((l) =>
+          (l.caseStatus || "").toLowerCase() === statusFilter.toLowerCase() ||
+          (l.caseStage || "").toLowerCase() === statusFilter.toLowerCase()
+        );
+      }
     }
 
     if (query) {
@@ -4340,6 +4464,10 @@ app.post("/api/admin/create-manual-lead", async (req, res) => {
     const invoiceNumber = `SAV-INV-${Math.floor(10000 + Math.random() * 90000)}`;
     const loaReferenceNumber = `SAV-LOA-2026-${Math.floor(10000 + Math.random() * 90000)}`;
 
+    const matchingAdvisor = teamMembersDatabase.find(
+      (m) => m.name.toLowerCase() === String(assignedAdvisorName || "").toLowerCase() || m.id === assignedAdvisorName
+    ) || getDefaultTeamMember();
+
     const manualLead: CRMLead = {
       leadId,
       crmReferenceId,
@@ -4347,7 +4475,7 @@ app.post("/api/admin/create-manual-lead", async (req, res) => {
       mobile,
       email: email ? String(email).trim().toLowerCase() : "",
       aadhaarNumberMasked: aadhaarNumberMasked || "XXXX-XXXX-0000",
-      panNumber: panNumber ? String(panNumber).toUpperCase() : "ABCDE1234F",
+      panNumber: panNumber ? String(panNumber).toUpperCase() : "",
       dob: "1990-01-01",
       gender: "Not Specified",
       address: "India",
@@ -4369,11 +4497,11 @@ app.post("/api/admin/create-manual-lead", async (req, res) => {
       loaStatus: "EXECUTED_AND_VERIFIED",
       loaReferenceNumber,
       assignedAdvisor: {
-        name: assignedAdvisorName || "Adv. Vikram Malhotra",
-        designation: "Senior Credit Resolution Lead",
-        phone: "+91 8109995906",
-        email: "support@savrdhfinancialservices.com",
-        photo: "https://images.unsplash.com/photo-1560250097-0b93528c311a?w=400&auto=format&fit=crop&q=80",
+        name: matchingAdvisor.name,
+        designation: matchingAdvisor.designation,
+        phone: matchingAdvisor.phone,
+        email: matchingAdvisor.email,
+        photo: matchingAdvisor.photo,
       },
       caseStatus: caseStatus || "Under Legal Review",
       caseStage: "LEGAL_REVIEW",
@@ -4468,6 +4596,409 @@ app.delete("/api/admin/leads/:leadId", (req, res) => {
     return res.status(500).json({ success: false, message: "Failed to delete lead" });
   }
 });
+
+// ==========================================
+// ADMIN CRM TEAM & EMPLOYEE MANAGEMENT ENDPOINTS
+// ==========================================
+
+// 1. Fetch all Company Team Members / Case Officers
+app.get("/api/admin/team", (req, res) => {
+  try {
+    // Enrich with calculated active case count from crmLeadsDatabase
+    const enrichedTeam = teamMembersDatabase.map((member) => {
+      const activeCasesCount = crmLeadsDatabase.filter(
+        (lead) =>
+          lead.assignedAdvisor?.name?.toLowerCase() === member.name.toLowerCase() &&
+          lead.caseStatus !== "Closed"
+      ).length;
+
+      return {
+        ...member,
+        activeCasesCount: activeCasesCount || 0,
+      };
+    });
+
+    return res.json({
+      success: true,
+      team: enrichedTeam,
+      totalCount: enrichedTeam.length,
+      activeCount: enrichedTeam.filter((m) => m.status === "ACTIVE").length,
+    });
+  } catch (error: any) {
+    console.error("Fetch team error:", error);
+    return res.status(500).json({ success: false, message: "Failed to fetch team members" });
+  }
+});
+
+// 2. Get Default Assigned Advisor
+app.get("/api/advisor/default", (req, res) => {
+  try {
+    const defaultMember = getDefaultTeamMember();
+    return res.json({
+      success: true,
+      advisor: defaultMember,
+    });
+  } catch (error: any) {
+    return res.status(500).json({ success: false, message: "Failed to fetch default advisor" });
+  }
+});
+
+// 3. Add New Employee / Case Officer
+app.post("/api/admin/team", (req, res) => {
+  try {
+    const {
+      name,
+      role = "LEGAL_ADVOCATE",
+      designation,
+      phone = "+91 8109995906",
+      email = "support@savrdhfinancialservices.com",
+      barCouncilNumber,
+      employeeId,
+      experienceYears = 5,
+      casesResolved = 100,
+      rating = 4.9,
+      photo,
+      status = "ACTIVE",
+      isDefault = false,
+      department = "Legal & Disputes Desk",
+      notes,
+    } = req.body;
+
+    if (!name || !name.trim()) {
+      return res.status(400).json({ success: false, message: "Employee / Officer Name is required" });
+    }
+
+    const newId = `emp-${Date.now().toString().slice(-4)}`;
+    const empCode = employeeId || `SAV-EMP-${Math.floor(100 + Math.random() * 900)}`;
+
+    const defaultPhotoMap: Record<string, string> = {
+      LEGAL_ADVOCATE: "https://images.unsplash.com/photo-1560250097-0b93528c311a?w=400&auto=format&fit=crop&q=80",
+      CASE_OFFICER: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=400&auto=format&fit=crop&q=80",
+      OTS_NEGOTIATOR: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&auto=format&fit=crop&q=80",
+      NODAL_OFFICER: "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=400&auto=format&fit=crop&q=80",
+      CREDIT_ANALYST: "https://images.unsplash.com/photo-1580489944761-15a19d654956?w=400&auto=format&fit=crop&q=80",
+    };
+
+    if (isDefault) {
+      teamMembersDatabase.forEach((m) => {
+        m.isDefault = false;
+      });
+    }
+
+    const newMember: TeamMemberRecord = {
+      id: newId,
+      name: name.trim(),
+      role,
+      designation: designation || (role === "LEGAL_ADVOCATE" ? "Credit Resolution Advocate" : "Senior Case Resolution Officer"),
+      phone: phone || "+91 8109995906",
+      email: email || "support@savrdhfinancialservices.com",
+      barCouncilNumber: barCouncilNumber || (role === "LEGAL_ADVOCATE" ? "BCI/DEL/2026/TEMP" : undefined),
+      employeeId: empCode,
+      experienceYears: Number(experienceYears) || 5,
+      casesResolved: Number(casesResolved) || 0,
+      rating: Number(rating) || 4.9,
+      photo: photo || defaultPhotoMap[role] || "https://images.unsplash.com/photo-1560250097-0b93528c311a?w=400&auto=format&fit=crop&q=80",
+      status: status === "INACTIVE" ? "INACTIVE" : "ACTIVE",
+      isDefault: !!isDefault,
+      department: department || "Dispute Resolution Desk",
+      notes: notes || "Added via Admin Team Portal.",
+      createdAt: new Date().toISOString(),
+    };
+
+    teamMembersDatabase.unshift(newMember);
+
+    return res.json({
+      success: true,
+      message: `Employee "${newMember.name}" successfully added to Savrdh Team.`,
+      member: newMember,
+    });
+  } catch (error: any) {
+    console.error("Create team member error:", error);
+    return res.status(500).json({ success: false, message: "Failed to add team member" });
+  }
+});
+
+// 4. Update Employee / Case Officer
+app.put("/api/admin/team/:id", (req, res) => {
+  try {
+    const { id } = req.params;
+    const member = teamMembersDatabase.find((m) => m.id === id);
+
+    if (!member) {
+      return res.status(404).json({ success: false, message: "Team member not found" });
+    }
+
+    const {
+      name,
+      role,
+      designation,
+      phone,
+      email,
+      barCouncilNumber,
+      employeeId,
+      experienceYears,
+      casesResolved,
+      rating,
+      photo,
+      status,
+      isDefault,
+      department,
+      notes,
+    } = req.body;
+
+    const oldName = member.name;
+
+    if (name !== undefined) member.name = name.trim();
+    if (role !== undefined) member.role = role;
+    if (designation !== undefined) member.designation = designation;
+    if (phone !== undefined) member.phone = phone;
+    if (email !== undefined) member.email = email;
+    if (barCouncilNumber !== undefined) member.barCouncilNumber = barCouncilNumber;
+    if (employeeId !== undefined) member.employeeId = employeeId;
+    if (experienceYears !== undefined) member.experienceYears = Number(experienceYears);
+    if (casesResolved !== undefined) member.casesResolved = Number(casesResolved);
+    if (rating !== undefined) member.rating = Number(rating);
+    if (photo !== undefined) member.photo = photo;
+    if (status !== undefined) member.status = status;
+    if (department !== undefined) member.department = department;
+    if (notes !== undefined) member.notes = notes;
+
+    if (isDefault === true) {
+      teamMembersDatabase.forEach((m) => {
+        m.isDefault = m.id === id;
+      });
+    } else if (isDefault === false && member.isDefault) {
+      member.isDefault = false;
+      const otherActive = teamMembersDatabase.find((m) => m.id !== id && m.status === "ACTIVE");
+      if (otherActive) otherActive.isDefault = true;
+    }
+
+    // Propagate updated name/phone to existing lead records if modified
+    if (oldName !== member.name || phone) {
+      crmLeadsDatabase.forEach((lead) => {
+        if (lead.assignedAdvisor?.name === oldName) {
+          lead.assignedAdvisor.name = member.name;
+          lead.assignedAdvisor.designation = member.designation;
+          lead.assignedAdvisor.phone = member.phone;
+          lead.assignedAdvisor.email = member.email;
+          lead.assignedAdvisor.photo = member.photo;
+        }
+      });
+    }
+
+    return res.json({
+      success: true,
+      message: `Employee "${member.name}" updated successfully.`,
+      member,
+    });
+  } catch (error: any) {
+    console.error("Update team member error:", error);
+    return res.status(500).json({ success: false, message: "Failed to update team member" });
+  }
+});
+
+// 5. Delete Employee / Case Officer
+app.delete("/api/admin/team/:id", (req, res) => {
+  try {
+    const { id } = req.params;
+    const index = teamMembersDatabase.findIndex((m) => m.id === id);
+
+    if (index === -1) {
+      return res.status(404).json({ success: false, message: "Team member not found" });
+    }
+
+    if (teamMembersDatabase.length <= 1) {
+      return res.status(400).json({
+        success: false,
+        message: "Cannot delete the only remaining team member. Please add another employee before deleting this one.",
+      });
+    }
+
+    const removed = teamMembersDatabase.splice(index, 1)[0];
+
+    // If removed member was default, reassign default to first active member
+    if (removed.isDefault) {
+      const remainingActive = teamMembersDatabase.find((m) => m.status === "ACTIVE") || teamMembersDatabase[0];
+      if (remainingActive) remainingActive.isDefault = true;
+    }
+
+    // Safely reassign any orphan leads to the current default advisor
+    const newDefault = getDefaultTeamMember();
+    let reassignedCount = 0;
+    crmLeadsDatabase.forEach((lead) => {
+      if (lead.assignedAdvisor?.name === removed.name) {
+        lead.assignedAdvisor = {
+          name: newDefault.name,
+          designation: newDefault.designation,
+          phone: newDefault.phone,
+          email: newDefault.email,
+          photo: newDefault.photo,
+        };
+        reassignedCount++;
+      }
+    });
+
+    return res.json({
+      success: true,
+      message: `Employee "${removed.name}" removed from Savrdh Team.${
+        reassignedCount > 0 ? ` ${reassignedCount} associated case(s) reassigned to ${newDefault.name}.` : ""
+      }`,
+      removedMember: removed,
+    });
+  } catch (error: any) {
+    console.error("Delete team member error:", error);
+    return res.status(500).json({ success: false, message: "Failed to delete team member" });
+  }
+});
+
+// 10. Upload / Attach Document to Lead (from Customer or Admin)
+app.post("/api/admin/leads/:leadId/upload-doc", (req, res) => {
+  try {
+    const { leadId } = req.params;
+    const { category, title, fileName, fileSize, dataUrl, notes } = req.body;
+
+    const lead = crmLeadsDatabase.find((l) => l.leadId === leadId || l.crmReferenceId === leadId) || crmLeadsDatabase[0];
+    if (!lead) {
+      return res.status(404).json({ success: false, message: "Lead not found" });
+    }
+
+    const docId = `doc-${Date.now()}`;
+    const newDoc = {
+      id: docId,
+      category: category || "OTHER",
+      title: title || fileName?.replace(/\.[^/.]+$/, "") || "Uploaded Financial Document",
+      fileName: fileName || "Document.pdf",
+      fileSize: fileSize || "1.2 MB",
+      uploadedAt: new Date().toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }),
+      status: "UNDER_REVIEW",
+      downloadUrl: dataUrl || undefined,
+      notes: notes || `Document attached via portal on ${new Date().toLocaleString("en-IN")}`,
+    };
+
+    if (!(lead as any).uploadedDocs) {
+      (lead as any).uploadedDocs = [];
+    }
+    (lead as any).uploadedDocs.unshift(newDoc);
+
+    // If specific document types, update lead properties
+    if (category === "LOAN_STATEMENT") {
+      (lead as any).hasLoanStatement = true;
+      (lead as any).latestLoanStatementName = fileName;
+    } else if (category === "CIBIL_REPORT") {
+      lead.cibilPdfName = fileName;
+      if (dataUrl) lead.cibilPdfUrl = dataUrl;
+    }
+
+    if (!lead.timeline) lead.timeline = [];
+    lead.timeline.unshift({
+      id: `tl-${Date.now()}`,
+      title: `Document Uploaded: ${newDoc.title}`,
+      description: `Category: ${newDoc.category} (${newDoc.fileName}). Sent to Legal Verification Desk.`,
+      timestamp: new Date().toISOString(),
+      type: "DOC",
+    });
+
+    return res.json({
+      success: true,
+      message: `Document "${newDoc.fileName}" successfully uploaded and attached to Lead ${lead.crmReferenceId}.`,
+      doc: newDoc,
+      lead,
+    });
+  } catch (error: any) {
+    console.error("Upload doc error:", error);
+    return res.status(500).json({ success: false, message: "Failed to upload document to lead" });
+  }
+});
+
+// 11. Save Forensic Loan Statement Audit to Lead
+app.post("/api/admin/leads/:leadId/save-loan-audit", (req, res) => {
+  try {
+    const { leadId } = req.params;
+    const { loanAudit } = req.body;
+
+    if (!loanAudit) {
+      return res.status(400).json({ success: false, message: "Loan audit data is required" });
+    }
+
+    const lead = crmLeadsDatabase.find((l) => l.leadId === leadId || l.crmReferenceId === leadId) || crmLeadsDatabase[0];
+    if (!lead) {
+      return res.status(404).json({ success: false, message: "Lead not found" });
+    }
+
+    (lead as any).loanAudit = loanAudit;
+
+    if (!lead.timeline) lead.timeline = [];
+    lead.timeline.unshift({
+      id: `tl-${Date.now()}`,
+      title: `Loan Forensic Audit: ${loanAudit.lenderName || "Bank"} (${loanAudit.loanType || "Loan"})`,
+      description: `Detected ₹${(loanAudit.illegalPenalChargesDetected || 0).toLocaleString("en-IN")} unlawful penal/bounce violations under RBI 2024 Circular. Foreclosure payoff: ₹${(loanAudit.foreclosureAmountPayoff || 0).toLocaleString("en-IN")}.`,
+      timestamp: new Date().toISOString(),
+      type: "LEGAL",
+    });
+
+    if (!lead.notes) lead.notes = [];
+    lead.notes.unshift({
+      id: `note-${Date.now()}`,
+      author: "Forensic Audit Engine",
+      text: `Loan Statement Audited: Lender ${loanAudit.lenderName}, Outstanding ₹${(loanAudit.currentPrincipalOutstanding || 0).toLocaleString("en-IN")}. ${loanAudit.rbiViolationFlags?.length || 0} RBI violations flagged.`,
+      createdAt: new Date().toISOString(),
+    });
+
+    return res.json({
+      success: true,
+      message: `Loan Statement Forensic Audit attached to Lead ${lead.crmReferenceId}.`,
+      lead,
+    });
+  } catch (error: any) {
+    console.error("Save loan audit error:", error);
+    return res.status(500).json({ success: false, message: "Failed to save loan audit" });
+  }
+});
+
+// 12. Save Forensic CIBIL Audit to Lead
+app.post("/api/admin/leads/:leadId/save-cibil-audit", (req, res) => {
+  try {
+    const { leadId } = req.params;
+    const { cibilReport } = req.body;
+
+    if (!cibilReport) {
+      return res.status(400).json({ success: false, message: "CIBIL report data is required" });
+    }
+
+    const lead = crmLeadsDatabase.find((l) => l.leadId === leadId || l.crmReferenceId === leadId) || crmLeadsDatabase[0];
+    if (!lead) {
+      return res.status(404).json({ success: false, message: "Lead not found" });
+    }
+
+    (lead as any).cibilAnalysis = cibilReport;
+    if (cibilReport.score) lead.creditScore = cibilReport.score;
+    if (cibilReport.scoreBand) lead.scoreBand = cibilReport.scoreBand;
+    if (cibilReport.summary?.totalOverdue) lead.totalDefaultAmount = cibilReport.summary.totalOverdue;
+    if (cibilReport.accounts && cibilReport.accounts.length > 0) lead.cibilAccounts = cibilReport.accounts;
+    if (cibilReport.bureauName) lead.creditBureau = cibilReport.bureauName;
+    if (cibilReport.summary?.settledAccountsCount !== undefined) lead.settledAccountsCount = cibilReport.summary.settledAccountsCount;
+    if (cibilReport.summary?.writtenOffAccountsCount !== undefined) lead.writtenOffAccountsCount = cibilReport.summary.writtenOffAccountsCount;
+
+    if (!lead.timeline) lead.timeline = [];
+    lead.timeline.unshift({
+      id: `tl-${Date.now()}`,
+      title: `CIBIL Bureau Forensic Audit Completed`,
+      description: `Bureau: ${cibilReport.bureauName || "TransUnion CIBIL"}, Score: ${cibilReport.score}. Overdue audited at ₹${(cibilReport.summary?.totalOverdue || 0).toLocaleString("en-IN")}.`,
+      timestamp: new Date().toISOString(),
+      type: "SYSTEM",
+    });
+
+    return res.json({
+      success: true,
+      message: `CIBIL Bureau Forensic Audit attached and lead metrics updated for ${lead.crmReferenceId}.`,
+      lead,
+    });
+  } catch (error: any) {
+    console.error("Save cibil audit error:", error);
+    return res.status(500).json({ success: false, message: "Failed to save cibil audit" });
+  }
+});
+
 
 
 // Advisor chat automated smart reply helper

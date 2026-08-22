@@ -1,4 +1,4 @@
-import { AICreditAnalysis, CRMLeadRecord, UserProfile, KYCData, CreditBureauReport, ResolutionPackage, LetterOfAuthorityConsent } from "../types";
+import { AICreditAnalysis, CRMLeadRecord, UserProfile, KYCData, CreditBureauReport, ResolutionPackage, LetterOfAuthorityConsent, TeamMember, AssignedAdvisor } from "../types";
 import { INITIAL_AI_ANALYSIS } from "../data/mockData";
 
 export async function executeLetterOfAuthorityApi(payload: {
@@ -30,13 +30,13 @@ export async function executeLetterOfAuthorityApi(payload: {
       loa: {
         isConsentGiven: true,
         referenceNumber: `SAV-LOA-2026-${Math.floor(10000 + Math.random() * 90000)}`,
-        grantorName: payload.customerName || "Customer",
-        grantorPan: payload.panNumber || "ABCDE1234F",
-        grantorAadhaarMasked: payload.aadhaarNumberMasked || "XXXX-XXXX-9283",
-        grantorAddress: payload.address || "Goregaon East, Mumbai, Maharashtra 400065",
+        grantorName: payload.customerName || "Borrower",
+        grantorPan: payload.panNumber || "PAN ON RECORD",
+        grantorAadhaarMasked: payload.aadhaarNumberMasked || "XXXX-XXXX-XXXX",
+        grantorAddress: payload.address || "Address on Record as per KYC",
         authorizedEntity: "Savrdh Financial Services Private Limited",
         cin: "U67100UP2021PTC156235",
-        assignedAdvocateName: "Adv. Vikram Malhotra",
+        assignedAdvocateName: "Savrdh Legal & Dispute Team",
         advocateBarNumber: "BCI/MAH/2849/2012",
         scopeOfAuthority: [
           "TransUnion CIBIL, Experian, Equifax, and CRIF High Mark credit file inspection, audit, and dispute filing under Section 21 of CICRA 2005.",
@@ -848,6 +848,155 @@ export async function deleteLeadApi(leadId: string): Promise<{
     return { success: false, message: err.message || "Failed to delete lead" };
   }
 }
+
+export async function uploadLeadDocumentApi(
+  leadId: string,
+  payload: {
+    category: string;
+    title: string;
+    fileName: string;
+    fileSize?: string;
+    dataUrl?: string;
+    notes?: string;
+  }
+): Promise<{ success: boolean; message: string; doc?: any; lead?: any }> {
+  try {
+    const res = await fetch(`/api/admin/leads/${leadId}/upload-doc`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    return await res.json();
+  } catch (err: any) {
+    return { success: false, message: err.message || "Failed to upload document" };
+  }
+}
+
+export async function saveLeadLoanAuditApi(
+  leadId: string,
+  loanAudit: any
+): Promise<{ success: boolean; message: string; lead?: any }> {
+  try {
+    const res = await fetch(`/api/admin/leads/${leadId}/save-loan-audit`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ loanAudit }),
+    });
+    return await res.json();
+  } catch (err: any) {
+    return { success: false, message: err.message || "Failed to save loan audit" };
+  }
+}
+
+export async function saveLeadCibilAuditApi(
+  leadId: string,
+  cibilReport: any
+): Promise<{ success: boolean; message: string; lead?: any }> {
+  try {
+    const res = await fetch(`/api/admin/leads/${leadId}/save-cibil-audit`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ cibilReport }),
+    });
+    return await res.json();
+  } catch (err: any) {
+    return { success: false, message: err.message || "Failed to save cibil audit" };
+  }
+}
+
+// ==========================================
+// ADMIN CRM TEAM & EMPLOYEE MANAGEMENT APIs
+// ==========================================
+
+export async function fetchAdminTeamApi(): Promise<{
+  success: boolean;
+  team: TeamMember[];
+  totalCount: number;
+  activeCount: number;
+  message?: string;
+}> {
+  try {
+    const res = await fetch("/api/admin/team");
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return await res.json();
+  } catch (err: any) {
+    console.warn("fetchAdminTeamApi fallback:", err);
+    return {
+      success: false,
+      team: [],
+      totalCount: 0,
+      activeCount: 0,
+      message: err.message || "Failed to load team members",
+    };
+  }
+}
+
+export async function fetchDefaultAdvisorApi(): Promise<{
+  success: boolean;
+  advisor?: AssignedAdvisor;
+  message?: string;
+}> {
+  try {
+    const res = await fetch("/api/advisor/default");
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return await res.json();
+  } catch (err: any) {
+    return { success: false, message: err.message };
+  }
+}
+
+export async function createAdminTeamMemberApi(payload: Partial<TeamMember>): Promise<{
+  success: boolean;
+  message: string;
+  member?: TeamMember;
+}> {
+  try {
+    const res = await fetch("/api/admin/team", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    return await res.json();
+  } catch (err: any) {
+    return { success: false, message: err.message || "Failed to create team member" };
+  }
+}
+
+export async function updateAdminTeamMemberApi(
+  id: string,
+  payload: Partial<TeamMember>
+): Promise<{
+  success: boolean;
+  message: string;
+  member?: TeamMember;
+}> {
+  try {
+    const res = await fetch(`/api/admin/team/${id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    return await res.json();
+  } catch (err: any) {
+    return { success: false, message: err.message || "Failed to update team member" };
+  }
+}
+
+export async function deleteAdminTeamMemberApi(id: string): Promise<{
+  success: boolean;
+  message: string;
+  removedMember?: TeamMember;
+}> {
+  try {
+    const res = await fetch(`/api/admin/team/${id}`, {
+      method: "DELETE",
+    });
+    return await res.json();
+  } catch (err: any) {
+    return { success: false, message: err.message || "Failed to delete team member" };
+  }
+}
+
 
 
 

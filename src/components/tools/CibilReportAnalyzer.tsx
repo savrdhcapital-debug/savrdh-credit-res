@@ -36,6 +36,8 @@ interface CibilReportAnalyzerProps {
   onApplyToApp?: (report: CreditBureauReport) => void;
   onClose?: () => void;
   isStandalone?: boolean;
+  leadName?: string;
+  leadPan?: string;
 }
 
 export const CibilReportAnalyzer: React.FC<CibilReportAnalyzerProps> = ({
@@ -43,11 +45,13 @@ export const CibilReportAnalyzer: React.FC<CibilReportAnalyzerProps> = ({
   onApplyToApp,
   onClose,
   isStandalone = false,
+  leadName,
+  leadPan,
 }) => {
-  // Active Report State
-  const [report, setReport] = useState<CreditBureauReport>(initialReport || SAMPLE_CIBIL_REPORTS[0].report);
-  const [activeSampleId, setActiveSampleId] = useState<string>("sample-balram");
-  const [inputMode, setInputMode] = useState<"DEMO" | "UPLOAD" | "PASTE">("DEMO");
+  // Active Report State - default to null if no initialReport passed for a clean fresh session
+  const [report, setReport] = useState<CreditBureauReport | null>(initialReport || null);
+  const [activeSampleId, setActiveSampleId] = useState<string>("");
+  const [inputMode, setInputMode] = useState<"UPLOAD" | "PASTE" | "DEMO">("UPLOAD");
 
   // File Upload State
   const [uploadedFile, setUploadedFile] = useState<{ name: string; size: string; dataUrl: string } | null>(null);
@@ -64,7 +68,19 @@ export const CibilReportAnalyzer: React.FC<CibilReportAnalyzerProps> = ({
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Switch demo sample
+  // Clear / Start Fresh Session
+  const handleStartFreshSession = () => {
+    setReport(null);
+    setActiveSampleId("");
+    setUploadedFile(null);
+    setRawText("");
+    setErrorMsg("");
+    setSuccessMsg("Fresh audit session initialized. Please upload customer CIBIL PDF or paste text.");
+    setInputMode("UPLOAD");
+    setTimeout(() => setSuccessMsg(""), 3500);
+  };
+
+  // Switch demo sample (explicit user choice only)
   const handleSelectDemo = (sampleId: string) => {
     const s = SAMPLE_CIBIL_REPORTS.find((item) => item.id === sampleId);
     if (s) {
@@ -94,6 +110,11 @@ export const CibilReportAnalyzer: React.FC<CibilReportAnalyzerProps> = ({
 
   // Run Deep CIBIL Parser
   const handleRunAnalysis = async () => {
+    if (!uploadedFile && !rawText.trim()) {
+      setErrorMsg("Please upload a CIBIL PDF file or paste credit report text to analyze.");
+      return;
+    }
+
     setIsAnalyzing(true);
     setErrorMsg("");
     setSuccessMsg("");
@@ -122,8 +143,8 @@ export const CibilReportAnalyzer: React.FC<CibilReportAnalyzerProps> = ({
         manualDetails: {
           rawText: rawText.trim() || undefined,
         },
-        customerName: report.verifiedProfile?.matchedName || "Customer",
-        panNumber: report.verifiedProfile?.matchedPan || "ABCDE1234F",
+        customerName: leadName || report?.verifiedProfile?.matchedName || undefined,
+        panNumber: leadPan || report?.verifiedProfile?.matchedPan || undefined,
       });
 
       clearTimeout(t1);
@@ -153,6 +174,7 @@ export const CibilReportAnalyzer: React.FC<CibilReportAnalyzerProps> = ({
 
   // Evaluate Intelligent Plan Recommendation based on ACTUAL parsed data
   const getDynamicPlanRecommendation = () => {
+    if (!report) return null;
     const score = report.score;
     const overdue = report.summary?.totalOverdue || 0;
     const writtenOff = report.summary?.writtenOffAccountsCount || 0;
@@ -204,7 +226,7 @@ export const CibilReportAnalyzer: React.FC<CibilReportAnalyzerProps> = ({
   const planRecommendation = getDynamicPlanRecommendation();
 
   // Filter accounts
-  const filteredAccounts = (report.accounts || []).filter((acc) => {
+  const filteredAccounts = report ? (report.accounts || []).filter((acc) => {
     if (accountFilter === "ALL") return true;
     if (accountFilter === "ACTIVE") return acc.status === "Active";
     if (accountFilter === "CLOSED") return acc.status === "Closed";
@@ -215,7 +237,8 @@ export const CibilReportAnalyzer: React.FC<CibilReportAnalyzerProps> = ({
       return (acc.dpdHistory || []).some((h) => h.dpd !== "000" && h.dpd !== "STD" && h.dpd !== "XXX");
     }
     return true;
-  });
+  }) : [];
+
 
   const getDpdBadgeClass = (dpd: string) => {
     switch (dpd) {
@@ -254,40 +277,54 @@ export const CibilReportAnalyzer: React.FC<CibilReportAnalyzerProps> = ({
             <span>CIBIL Report Deep Diagnostic Suite</span>
           </h1>
           <p className="text-xs text-slate-400 mt-0.5">
-            Parses real CIBIL / Experian / Equifax / CRIF files, extracts actual tradelines, and dynamically calculates the exact resolution plan.
+            {leadName ? `Auditing Lead Profile: ${leadName} ${leadPan ? `(${leadPan})` : ""}` : "Parses real CIBIL / Experian / Equifax files, extracts actual tradelines, and generates legal OTS strategy."}
           </p>
         </div>
 
-        {onClose && (
-          <button
-            onClick={onClose}
-            className="self-start sm:self-auto py-1.5 px-3 rounded-xl bg-navy-900 border border-slate-700 hover:border-slate-500 text-slate-300 text-xs font-semibold"
-          >
-            Close Tool
-          </button>
-        )}
+        <div className="flex flex-wrap items-center gap-2">
+          {report && (
+            <button
+              onClick={handleStartFreshSession}
+              className="py-1.5 px-3 rounded-xl bg-navy-900 border border-slate-700 hover:border-amber-500 text-amber-300 text-xs font-semibold flex items-center gap-1.5 cursor-pointer"
+            >
+              <RefreshCw className="w-3.5 h-3.5" />
+              <span>Start Fresh Session</span>
+            </button>
+          )}
+
+          {report && onApplyToApp && (
+            <button
+              onClick={() => onApplyToApp(report)}
+              className="py-1.5 px-3 rounded-xl bg-gold-gradient text-navy-950 text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow hover:brightness-110"
+            >
+              <CheckCircle2 className="w-3.5 h-3.5" />
+              <span>Save & Apply to Lead</span>
+            </button>
+          )}
+
+          {onClose && (
+            <button
+              onClick={onClose}
+              className="py-1.5 px-3 rounded-xl bg-navy-900 border border-slate-700 hover:border-slate-500 text-slate-300 text-xs font-semibold"
+            >
+              Close Tool
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Input Mode Selector Bar */}
-      <div className="p-3 rounded-2xl bg-navy-950 border border-slate-800/90 space-y-3">
+      <div className="p-3.5 rounded-2xl bg-navy-950 border border-slate-800/90 space-y-3">
         <div className="flex items-center justify-between">
-          <span className="text-xs font-bold text-slate-300">Choose Data Source for Analysis:</span>
+          <span className="text-xs font-bold text-slate-300">Intake / Input Method:</span>
           <div className="flex items-center gap-1 bg-navy-900 p-1 rounded-xl border border-slate-800 text-[11px]">
-            <button
-              onClick={() => setInputMode("DEMO")}
-              className={`px-3 py-1 rounded-lg font-medium transition-colors ${
-                inputMode === "DEMO" ? "bg-amber-500 text-navy-950 font-bold" : "text-slate-400 hover:text-slate-200"
-              }`}
-            >
-              Demo Samples (3)
-            </button>
             <button
               onClick={() => setInputMode("UPLOAD")}
               className={`px-3 py-1 rounded-lg font-medium transition-colors ${
                 inputMode === "UPLOAD" ? "bg-amber-500 text-navy-950 font-bold" : "text-slate-400 hover:text-slate-200"
               }`}
             >
-              Upload Any PDF
+              Upload Real CIBIL PDF
             </button>
             <button
               onClick={() => setInputMode("PASTE")}
@@ -295,7 +332,15 @@ export const CibilReportAnalyzer: React.FC<CibilReportAnalyzerProps> = ({
                 inputMode === "PASTE" ? "bg-amber-500 text-navy-950 font-bold" : "text-slate-400 hover:text-slate-200"
               }`}
             >
-              Paste Raw Text
+              Paste Report Text
+            </button>
+            <button
+              onClick={() => setInputMode("DEMO")}
+              className={`px-3 py-1 rounded-lg font-medium transition-colors ${
+                inputMode === "DEMO" ? "bg-amber-500 text-navy-950 font-bold" : "text-slate-400 hover:text-slate-200"
+              }`}
+            >
+              Sample Profiles
             </button>
           </div>
         </div>
@@ -341,14 +386,14 @@ export const CibilReportAnalyzer: React.FC<CibilReportAnalyzerProps> = ({
           <div className="space-y-3 pt-1">
             <div
               onClick={() => fileInputRef.current?.click()}
-              className="p-5 rounded-xl border-2 border-dashed border-slate-700 hover:border-amber-500/60 bg-navy-900/40 text-center cursor-pointer transition-colors"
+              className="p-6 rounded-xl border-2 border-dashed border-amber-500/30 hover:border-amber-500 bg-navy-900/40 text-center cursor-pointer transition-colors"
             >
-              <Upload className="w-6 h-6 text-amber-400 mx-auto mb-2" />
+              <Upload className="w-7 h-7 text-amber-400 mx-auto mb-2" />
               <p className="text-xs font-bold text-slate-200">
-                {uploadedFile ? uploadedFile.name : "Click or Drag & Drop ANY Real CIBIL / Experian PDF here"}
+                {uploadedFile ? uploadedFile.name : "Click or Drag & Drop ANY Real Customer CIBIL / Experian PDF here"}
               </p>
               <p className="text-[11px] text-slate-400 mt-1">
-                {uploadedFile ? `Size: ${uploadedFile.size} • Ready for AI extraction` : "Supports TransUnion CIBIL, Experian, Equifax, and CRIF High Mark"}
+                {uploadedFile ? `Size: ${uploadedFile.size} • Ready for AI extraction` : "Supports TransUnion CIBIL, Experian, Equifax, and CRIF High Mark PDFs"}
               </p>
               <input
                 ref={fileInputRef}
@@ -422,7 +467,21 @@ export const CibilReportAnalyzer: React.FC<CibilReportAnalyzerProps> = ({
         </div>
       )}
 
+      {/* When no report is active, show clean prompt state */}
+      {!report && !isAnalyzing && (
+        <div className="p-8 rounded-2xl bg-navy-950 border border-slate-800 text-center space-y-3">
+          <div className="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center mx-auto text-amber-400">
+            <ShieldCheck className="w-6 h-6" />
+          </div>
+          <h2 className="text-base font-bold text-slate-100">Fresh Session Ready — No Report Loaded</h2>
+          <p className="text-xs text-slate-400 max-w-md mx-auto">
+            Upload the customer&apos;s real CIBIL PDF or paste the report text above to extract bureau tradelines, DPD history, written-off accounts, and generate an advocate resolution strategy.
+          </p>
+        </div>
+      )}
+
       {/* MAIN ANALYSIS REPORT VIEW */}
+      {report && (
       <div className="space-y-5">
         {/* 1. Score & Bureau Header Card */}
         <div className="p-5 rounded-2xl navy-card-gold relative overflow-hidden">
@@ -753,6 +812,7 @@ export const CibilReportAnalyzer: React.FC<CibilReportAnalyzerProps> = ({
           </div>
         )}
       </div>
+      )}
     </div>
   );
 };

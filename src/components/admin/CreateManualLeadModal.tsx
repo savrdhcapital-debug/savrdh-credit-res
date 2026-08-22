@@ -1,18 +1,22 @@
-import React, { useState } from "react";
-import { X, UserPlus, Sparkles, CheckCircle2, AlertCircle, Building2 } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { X, UserPlus, Sparkles, CheckCircle2, AlertCircle, Building2, UserCheck } from "lucide-react";
 import { createManualLeadApi } from "../../services/api";
+import { TeamMember } from "../../types";
 
 interface CreateManualLeadModalProps {
   isOpen: boolean;
   onClose: () => void;
   onLeadCreated: () => void;
+  team?: TeamMember[];
 }
 
 export const CreateManualLeadModal: React.FC<CreateManualLeadModalProps> = ({
   isOpen,
   onClose,
   onLeadCreated,
+  team = [],
 }) => {
+  const defaultAdvisor = team.find((m) => m.isDefault) || team[0];
   const [customerName, setCustomerName] = useState("");
   const [mobile, setMobile] = useState("");
   const [email, setEmail] = useState("");
@@ -24,11 +28,17 @@ export const CreateManualLeadModal: React.FC<CreateManualLeadModalProps> = ({
   );
   const [packageAmount, setPackageAmount] = useState("9999");
   const [caseStatus, setCaseStatus] = useState("Under Legal Review");
-  const [assignedAdvisorName, setAssignedAdvisorName] = useState("Adv. Vikram Malhotra");
+  const [assignedAdvisorName, setAssignedAdvisorName] = useState(defaultAdvisor?.name || "Adv. Vikram Malhotra");
   const [notes, setNotes] = useState("");
   const [sendCustomerEmail, setSendCustomerEmail] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (defaultAdvisor && !assignedAdvisorName) {
+      setAssignedAdvisorName(defaultAdvisor.name);
+    }
+  }, [defaultAdvisor]);
 
   if (!isOpen) return null;
 
@@ -191,15 +201,25 @@ export const CreateManualLeadModal: React.FC<CreateManualLeadModalProps> = ({
             </div>
 
             <div>
-              <label className="block font-semibold text-slate-300 mb-1">Assigned Legal Counsel</label>
+              <label className="block font-semibold text-slate-300 mb-1">Assigned Case Officer / Counsel</label>
               <select
                 value={assignedAdvisorName}
                 onChange={(e) => setAssignedAdvisorName(e.target.value)}
                 className="w-full py-2 px-3 bg-navy-950 border border-slate-700 focus:border-amber-400 rounded-xl text-white focus:outline-none"
               >
-                <option value="Adv. Vikram Malhotra">Adv. Vikram Malhotra (Lead Counsel)</option>
-                <option value="Adv. Sunita Rao">Adv. Sunita Rao (Banking Disputes)</option>
-                <option value="Adv. Rohit Sen">Adv. Rohit Sen (OTS Specialist)</option>
+                {team.length > 0 ? (
+                  team.map((member) => (
+                    <option key={member.id} value={member.name}>
+                      {member.name} ({member.designation}){member.isDefault ? " ★ [Default]" : ""}
+                    </option>
+                  ))
+                ) : (
+                  <>
+                    <option value="Adv. Vikram Malhotra">Adv. Vikram Malhotra (Senior Credit Resolution Lead)</option>
+                    <option value="Adv. Sunita Rao">Adv. Sunita Rao (Banking Disputes)</option>
+                    <option value="Adv. Rohit Sen">Adv. Rohit Sen (OTS Specialist)</option>
+                  </>
+                )}
               </select>
             </div>
           </div>

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import {
   X,
   User,
@@ -23,22 +23,32 @@ import {
   ChevronRight,
   Printer,
   Sparkles,
+  ReceiptText,
+  Zap,
+  Upload,
+  FileSpreadsheet,
+  FileSearch,
 } from "lucide-react";
-import { AdminLeadDetail } from "../../types";
+import { AdminLeadDetail, UploadedDoc, LoanStatementAnalysis, CreditBureauReport, TeamMember } from "../../types";
 import {
   updateLeadStatusApi,
   addLeadNoteApi,
   sendLeadNoticeEmailApi,
   resendLeadConfirmationEmailApi,
+  uploadLeadDocumentApi,
+  saveLeadLoanAuditApi,
+  saveLeadCibilAuditApi,
 } from "../../services/api";
 import { BureauDocketModal } from "../common/BureauDocketModal";
-import { CreditBureauReport } from "../../types";
+import { CibilReportAnalyzer } from "../tools/CibilReportAnalyzer";
+import { LoanStatementAnalyzer } from "../tools/LoanStatementAnalyzer";
 
 interface LeadDocketModalProps {
   lead: AdminLeadDetail;
   isOpen: boolean;
   onClose: () => void;
   onLeadUpdated: () => void;
+  team?: TeamMember[];
 }
 
 export const LeadDocketModal: React.FC<LeadDocketModalProps> = ({
@@ -46,9 +56,10 @@ export const LeadDocketModal: React.FC<LeadDocketModalProps> = ({
   isOpen,
   onClose,
   onLeadUpdated,
+  team = [],
 }) => {
   const [activeTab, setActiveTab] = useState<
-    "PROFILE_KYC" | "DOCUMENTS" | "CIBIL_REPORT" | "PAYMENTS" | "LOA_LEGAL" | "NOTES_TIMELINE" | "COMMUNICATION"
+    "PROFILE_KYC" | "DOCUMENTS" | "CIBIL_REPORT" | "LOAN_AUDIT" | "PAYMENTS" | "LOA_LEGAL" | "NOTES_TIMELINE" | "COMMUNICATION"
   >("PROFILE_KYC");
 
   // Status update state
@@ -63,6 +74,18 @@ export const LeadDocketModal: React.FC<LeadDocketModalProps> = ({
   const [newNoteText, setNewNoteText] = useState("");
   const [isAddingNote, setIsAddingNote] = useState(false);
   const [isBureauModalOpen, setIsBureauModalOpen] = useState(false);
+
+  // Modal states for live tools
+  const [isCibilAnalyzerOpen, setIsCibilAnalyzerOpen] = useState(false);
+  const [isLoanAnalyzerOpen, setIsLoanAnalyzerOpen] = useState(false);
+
+  // Admin Document Upload state
+  const [adminDocCategory, setAdminDocCategory] = useState("LOAN_STATEMENT");
+  const [adminDocTitle, setAdminDocTitle] = useState("");
+  const [adminDocNotes, setAdminDocNotes] = useState("");
+  const [isUploadingAdminDoc, setIsUploadingAdminDoc] = useState(false);
+  const [adminDocSuccessMsg, setAdminDocSuccessMsg] = useState("");
+  const adminFileInputRef = useRef<HTMLInputElement>(null);
 
   // Email form state
   const [emailSubject, setEmailSubject] = useState(
@@ -259,8 +282,9 @@ export const LeadDocketModal: React.FC<LeadDocketModalProps> = ({
         <div className="px-6 bg-navy-900/80 border-b border-slate-800 flex gap-2 overflow-x-auto no-scrollbar flex-shrink-0">
           {[
             { id: "PROFILE_KYC", label: "Profile & KYC", icon: User },
-            { id: "DOCUMENTS", label: "Uploaded Docs (PAN / Aadhaar)", icon: FileText },
-            { id: "CIBIL_REPORT", label: "CIBIL Bureau & Defaults", icon: CreditCard },
+            { id: "DOCUMENTS", label: "Documents & Statement Vault", icon: FileText },
+            { id: "CIBIL_REPORT", label: "CIBIL Bureau & Analysis", icon: CreditCard },
+            { id: "LOAN_AUDIT", label: "Loan Statement & RBI Audit", icon: ReceiptText },
             { id: "PAYMENTS", label: "Fee Receipts & Invoices", icon: Building },
             { id: "LOA_LEGAL", label: "LOA Legal Mandate", icon: Scale },
             { id: "NOTES_TIMELINE", label: "Advocate Notes & Timeline", icon: MessageSquare },
@@ -396,15 +420,25 @@ export const LeadDocketModal: React.FC<LeadDocketModalProps> = ({
                     </div>
 
                     <div>
-                      <label className="block text-[11px] text-slate-400 mb-1">Assigned Counsel</label>
+                      <label className="block text-[11px] text-slate-400 mb-1">Assigned Case Officer / Counsel</label>
                       <select
                         value={advisorName}
                         onChange={(e) => setAdvisorName(e.target.value)}
                         className="w-full py-2 px-3 bg-navy-950 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-amber-400"
                       >
-                        <option value="Adv. Vikram Malhotra">Adv. Vikram Malhotra (Lead Counsel)</option>
-                        <option value="Adv. Sunita Rao">Adv. Sunita Rao (Banking Disputes)</option>
-                        <option value="Adv. Rohit Sen">Adv. Rohit Sen (OTS Specialist)</option>
+                        {team.length > 0 ? (
+                          team.map((member) => (
+                            <option key={member.id} value={member.name}>
+                              {member.name} ({member.designation}){member.isDefault ? " ★ [Default]" : ""}
+                            </option>
+                          ))
+                        ) : (
+                          <>
+                            <option value="Adv. Vikram Malhotra">Adv. Vikram Malhotra (Lead Counsel)</option>
+                            <option value="Adv. Sunita Rao">Adv. Sunita Rao (Banking Disputes)</option>
+                            <option value="Adv. Rohit Sen">Adv. Rohit Sen (OTS Specialist)</option>
+                          </>
+                        )}
                       </select>
                     </div>
 
@@ -445,6 +479,7 @@ export const LeadDocketModal: React.FC<LeadDocketModalProps> = ({
                 </span>
               </div>
 
+              {/* KYC Base Cards */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {/* Document Card 1: PAN Card */}
                 <div className="p-4 rounded-2xl bg-navy-900/80 border border-slate-800 flex flex-col justify-between space-y-3">
@@ -576,19 +611,198 @@ export const LeadDocketModal: React.FC<LeadDocketModalProps> = ({
                       <button
                         type="button"
                         onClick={() => setIsBureauModalOpen(true)}
-                        className="py-1.5 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 text-xs font-semibold flex items-center justify-center gap-1 transition-colors"
+                        className="py-1.5 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 text-xs font-semibold flex items-center justify-center gap-1 transition-colors cursor-pointer"
                       >
                         <FileText className="w-3 h-3" />
-                        <span>View Docket</span>
+                        <span>Docket</span>
                       </button>
                       <button
                         type="button"
-                        onClick={() => setActiveTab("CIBIL_REPORT")}
-                        className="py-1.5 rounded-lg bg-navy-800 hover:bg-navy-700 text-slate-200 text-xs font-semibold flex items-center justify-center gap-1 transition-colors"
+                        onClick={() => setIsCibilAnalyzerOpen(true)}
+                        className="py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-navy-950 text-xs font-bold flex items-center justify-center gap-1 transition-colors cursor-pointer"
                       >
-                        <span>Tradelines</span>
+                        <Zap className="w-3 h-3" />
+                        <span>Audit Tool</span>
                       </button>
                     </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Customer Uploaded Statement & Notices Vault */}
+              <div className="space-y-4 pt-4 border-t border-slate-800">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center gap-2">
+                      <FileSpreadsheet className="w-4 h-4 text-amber-400" />
+                      <span>Case Document Vault (Loan Statements, Bank Statements & Notices)</span>
+                    </h4>
+                    <p className="text-[11px] text-slate-400">Documents submitted by customer or uploaded by case managers for AI forensic audit</p>
+                  </div>
+                </div>
+
+                {lead.uploadedDocs && lead.uploadedDocs.length > 0 ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {lead.uploadedDocs.map((doc, idx) => (
+                      <div
+                        key={doc.id || idx}
+                        className="p-4 rounded-2xl bg-navy-900/80 border border-slate-800 flex items-start justify-between gap-3 hover:border-slate-700 transition-colors"
+                      >
+                        <div className="space-y-1.5 flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-[9px] px-2 py-0.5 rounded font-bold uppercase tracking-wide bg-amber-500/10 text-amber-300 border border-amber-500/30">
+                              {doc.category.replace(/_/g, " ")}
+                            </span>
+                            <span className="text-[9px] px-2 py-0.5 rounded font-bold bg-emerald-950 text-emerald-300 border border-emerald-800">
+                              {doc.status || "VERIFIED"}
+                            </span>
+                          </div>
+                          <h5 className="text-xs font-bold text-white truncate">{doc.title || doc.fileName}</h5>
+                          <p className="text-[11px] text-slate-400 truncate">{doc.fileName}</p>
+                          {doc.notes && <p className="text-[10px] text-slate-500">{doc.notes}</p>}
+                          <div className="text-[10px] text-slate-500 flex items-center gap-2">
+                            <span>{doc.fileSize || "1.2 MB"}</span>
+                            <span>•</span>
+                            <span>{doc.uploadedAt || "Recent"}</span>
+                          </div>
+                        </div>
+
+                        <div className="flex flex-col gap-1.5 flex-shrink-0">
+                          {doc.category === "LOAN_STATEMENT" && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setIsLoanAnalyzerOpen(true);
+                              }}
+                              className="px-2.5 py-1.5 rounded-lg bg-amber-500 text-navy-950 font-bold text-[11px] flex items-center gap-1 hover:bg-amber-400 transition-colors cursor-pointer"
+                              title="Audit with Loan Statement Analyzer"
+                            >
+                              <FileSearch className="w-3.5 h-3.5" />
+                              <span>Audit</span>
+                            </button>
+                          )}
+                          {doc.dataUrl ? (
+                            <a
+                              href={doc.dataUrl}
+                              download={doc.fileName}
+                              className="px-2.5 py-1.5 rounded-lg bg-navy-800 hover:bg-navy-700 text-slate-200 text-[11px] flex items-center justify-center gap-1 transition-colors"
+                            >
+                              <Download className="w-3.5 h-3.5" />
+                              <span>Save</span>
+                            </a>
+                          ) : (
+                            <span className="text-[10px] text-slate-500 italic px-2">Vault Encrypted</span>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="p-6 rounded-2xl bg-navy-950 border border-dashed border-slate-800 text-center space-y-2">
+                    <FileText className="w-8 h-8 text-slate-600 mx-auto" />
+                    <p className="text-xs text-slate-400">No additional statement or recovery files uploaded yet for this lead.</p>
+                    <p className="text-[11px] text-slate-500">You can attach statement files below or audit directly via the Loan & CIBIL analyzers.</p>
+                  </div>
+                )}
+
+                {/* Admin Direct Document Upload Form */}
+                <div className="p-5 rounded-2xl bg-navy-950 border border-slate-800 space-y-4">
+                  <h5 className="text-xs font-bold text-white flex items-center gap-2">
+                    <Upload className="w-4 h-4 text-amber-400" />
+                    <span>Upload Customer Document or Statement to Case File</span>
+                  </h5>
+
+                  {adminDocSuccessMsg && (
+                    <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs flex items-center gap-2">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+                      <span>{adminDocSuccessMsg}</span>
+                    </div>
+                  )}
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div>
+                      <label className="block text-[11px] font-semibold text-slate-400 mb-1">Document Category</label>
+                      <select
+                        value={adminDocCategory}
+                        onChange={(e) => setAdminDocCategory(e.target.value)}
+                        className="w-full py-2 px-3 bg-navy-900 border border-slate-700 rounded-xl text-xs text-slate-200 focus:outline-none focus:border-amber-400"
+                      >
+                        <option value="LOAN_STATEMENT">Loan Account Statement</option>
+                        <option value="CIBIL_REPORT">CIBIL Bureau Raw PDF</option>
+                        <option value="BANK_STATEMENT">Bank Statement (6-12 Mo)</option>
+                        <option value="FORECLOSURE_LETTER">Foreclosure / Payoff Letter</option>
+                        <option value="RECOVERY_NOTICE">Lender / Legal Recovery Notice</option>
+                        <option value="SETTLEMENT_OFFER">OTS Settlement Proposal</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] font-semibold text-slate-400 mb-1">Document Title / Tag</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. HDFC Personal Loan Statement"
+                        value={adminDocTitle}
+                        onChange={(e) => setAdminDocTitle(e.target.value)}
+                        className="w-full py-2 px-3 bg-navy-900 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-amber-400"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] font-semibold text-slate-400 mb-1">Notes / Legal Reference</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. Received via customer email"
+                        value={adminDocNotes}
+                        onChange={(e) => setAdminDocNotes(e.target.value)}
+                        className="w-full py-2 px-3 bg-navy-900 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-amber-400"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="file"
+                      ref={adminFileInputRef}
+                      className="hidden"
+                      accept=".pdf,.png,.jpg,.jpeg,.csv,.txt"
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+                        setIsUploadingAdminDoc(true);
+                        const reader = new FileReader();
+                        reader.onload = async (ev) => {
+                          const base64 = ev.target?.result as string;
+                          const res = await uploadLeadDocumentApi(lead.leadId, {
+                            category: adminDocCategory,
+                            title: adminDocTitle.trim() || file.name.replace(/\.[^/.]+$/, ""),
+                            fileName: file.name,
+                            fileSize: `${(file.size / (1024 * 1024)).toFixed(2)} MB`,
+                            dataUrl: base64,
+                            notes: adminDocNotes.trim() || `Uploaded by Admin (${advisorName})`,
+                          });
+                          setIsUploadingAdminDoc(false);
+                          if (res.success) {
+                            setAdminDocSuccessMsg(`Document "${file.name}" attached successfully to lead file!`);
+                            setAdminDocTitle("");
+                            setAdminDocNotes("");
+                            onLeadUpdated();
+                            setTimeout(() => setAdminDocSuccessMsg(""), 3500);
+                          }
+                        };
+                        reader.readAsDataURL(file);
+                      }}
+                    />
+
+                    <button
+                      type="button"
+                      disabled={isUploadingAdminDoc}
+                      onClick={() => adminFileInputRef.current?.click()}
+                      className="py-2 px-4 rounded-xl bg-amber-500 hover:bg-amber-400 text-navy-950 font-bold text-xs flex items-center gap-2 cursor-pointer transition-all disabled:opacity-50"
+                    >
+                      <Upload className="w-3.5 h-3.5" />
+                      <span>{isUploadingAdminDoc ? "Uploading Document..." : "Select File & Attach to Docket"}</span>
+                    </button>
+                    <span className="text-[11px] text-slate-500">Supports PDF, JPG, PNG, CSV up to 25MB</span>
                   </div>
                 </div>
               </div>
@@ -598,6 +812,38 @@ export const LeadDocketModal: React.FC<LeadDocketModalProps> = ({
           {/* TAB 3: CIBIL REPORT & DEFAULTS */}
           {activeTab === "CIBIL_REPORT" && (
             <div className="space-y-6">
+              {/* Action Banner for Live AI CIBIL Audit */}
+              <div className="p-5 rounded-2xl bg-gradient-to-r from-amber-500/15 via-yellow-500/10 to-amber-600/15 border border-amber-500/30 flex flex-wrap items-center justify-between gap-4">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="w-5 h-5 text-amber-400" />
+                    <h4 className="text-sm font-bold text-white">AI CIBIL Forensic Analyzer & OCR Engine</h4>
+                  </div>
+                  <p className="text-xs text-slate-300 mt-1">
+                    Extract tradelines, detect illegal DPD reporting, audit DPD strings, and save audit directly to this lead record.
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsCibilAnalyzerOpen(true)}
+                    className="py-2.5 px-4 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-navy-950 font-bold text-xs flex items-center gap-2 shadow-lg shadow-amber-500/20 transition-all cursor-pointer"
+                  >
+                    <Zap className="w-4 h-4" />
+                    <span>Launch CIBIL Forensic Audit Tool</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setIsBureauModalOpen(true)}
+                    className="py-2.5 px-3.5 rounded-xl bg-navy-900 border border-slate-700 hover:border-amber-500/40 text-slate-300 text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
+                  >
+                    <ExternalLink className="w-3.5 h-3.5 text-amber-400" />
+                    <span>View Official Bureau Docket</span>
+                  </button>
+                </div>
+              </div>
+
               {/* Identity Verification Summary */}
               <div className="p-4 rounded-2xl bg-navy-950 border border-emerald-500/30 flex flex-wrap items-center justify-between gap-3">
                 <div className="flex items-center gap-2">
@@ -611,14 +857,6 @@ export const LeadDocketModal: React.FC<LeadDocketModalProps> = ({
                   <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-300 border border-emerald-500/30">
                     100% Identity Match
                   </span>
-                  <button
-                    type="button"
-                    onClick={() => setIsBureauModalOpen(true)}
-                    className="py-1.5 px-3 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-300 text-xs font-bold flex items-center gap-1 transition-colors cursor-pointer"
-                  >
-                    <ExternalLink className="w-3.5 h-3.5" />
-                    <span>Open Bureau Docket</span>
-                  </button>
                 </div>
               </div>
 
@@ -727,6 +965,159 @@ export const LeadDocketModal: React.FC<LeadDocketModalProps> = ({
                   </div>
                 )}
               </div>
+            </div>
+          )}
+
+          {/* TAB: LOAN STATEMENT AUDIT & RBI PENAL FORENSICS */}
+          {activeTab === "LOAN_AUDIT" && (
+            <div className="space-y-6">
+              {/* Action Banner */}
+              <div className="p-5 rounded-2xl bg-gradient-to-r from-blue-500/15 via-indigo-500/10 to-amber-500/15 border border-blue-500/30 flex flex-wrap items-center justify-between gap-4">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <ReceiptText className="w-5 h-5 text-blue-400" />
+                    <h4 className="text-sm font-bold text-white">Loan Statement Forensic Auditor (RBI Fair Lending 2024)</h4>
+                  </div>
+                  <p className="text-xs text-slate-300 mt-1">
+                    Detect compounded penal charges, bounce levy spirals, calculate 0% foreclosure payoff & generate legal notices.
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsLoanAnalyzerOpen(true)}
+                    className="py-2.5 px-4 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-navy-950 font-bold text-xs flex items-center gap-2 shadow-lg shadow-amber-500/20 transition-all cursor-pointer"
+                  >
+                    <Zap className="w-4 h-4" />
+                    <span>{lead.loanAudit ? "Re-Audit / Launch Loan Analyzer" : "Run AI Loan Statement Forensic Audit"}</span>
+                  </button>
+                </div>
+              </div>
+
+              {lead.loanAudit ? (
+                <div className="space-y-6">
+                  {/* Summary Metric Cards */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div className="p-4 rounded-2xl bg-navy-950 border border-slate-800">
+                      <span className="text-[10px] text-slate-400 block font-semibold uppercase tracking-wider">Lender Institution</span>
+                      <span className="text-base font-bold text-white block truncate">{lead.loanAudit.lenderName}</span>
+                      <span className="text-[11px] text-slate-400 font-mono mt-0.5 block">{lead.loanAudit.loanAccountNumber}</span>
+                    </div>
+
+                    <div className="p-4 rounded-2xl bg-navy-950 border border-slate-800">
+                      <span className="text-[10px] text-slate-400 block font-semibold uppercase tracking-wider">Outstanding Balance</span>
+                      <span className="text-base font-bold text-rose-400 font-mono block">
+                        ₹{(lead.loanAudit.outstandingPrincipal || 0).toLocaleString("en-IN")}
+                      </span>
+                      <span className="text-[11px] text-slate-400 mt-0.5 block">Sanctioned: ₹{(lead.loanAudit.sanctionedAmount || 0).toLocaleString("en-IN")}</span>
+                    </div>
+
+                    <div className="p-4 rounded-2xl bg-navy-950 border border-rose-500/30">
+                      <span className="text-[10px] text-rose-400 block font-semibold uppercase tracking-wider">Unlawful Penal Charges</span>
+                      <span className="text-base font-bold text-rose-400 font-mono block">
+                        ₹{(lead.loanAudit.illegalPenalInterestDetected || 0).toLocaleString("en-IN")}
+                      </span>
+                      <span className="text-[11px] text-rose-300/80 mt-0.5 block">RBI 2024 Circular Violation</span>
+                    </div>
+
+                    <div className="p-4 rounded-2xl bg-navy-950 border border-emerald-500/30">
+                      <span className="text-[10px] text-emerald-400 block font-semibold uppercase tracking-wider">Clean Payoff Amount</span>
+                      <span className="text-base font-bold text-emerald-300 font-mono block">
+                        ₹{(lead.loanAudit.cleanForeclosureAmount || 0).toLocaleString("en-IN")}
+                      </span>
+                      <span className="text-[11px] text-emerald-400/80 mt-0.5 block">Zero Foreclosure Penalty (0%)</span>
+                    </div>
+                  </div>
+
+                  {/* Forensic Audit Findings */}
+                  <div className="p-5 rounded-2xl bg-navy-950 border border-slate-800 space-y-3">
+                    <h5 className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-2">
+                      <Scale className="w-4 h-4 text-amber-400" />
+                      <span>RBI Compliance & Forensic Violations Summary</span>
+                    </h5>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2">
+                      <div className="p-3.5 rounded-xl bg-navy-900/80 border border-slate-800 space-y-1">
+                        <span className="text-xs font-semibold text-slate-300 block">Compounded Penal Charges</span>
+                        <p className="text-[11px] text-slate-400">
+                          {lead.loanAudit.illegalPenalInterestDetected > 0
+                            ? `Found ₹${lead.loanAudit.illegalPenalInterestDetected.toLocaleString("en-IN")} in penal interest capitalised into principal. Under RBI/2023-24/53, penal charges shall not be capitalised.`
+                            : "No compounding penal violations identified in recent billing cycle."}
+                        </p>
+                      </div>
+
+                      <div className="p-3.5 rounded-xl bg-navy-900/80 border border-slate-800 space-y-1">
+                        <span className="text-xs font-semibold text-slate-300 block">Foreclosure Penalty Legality</span>
+                        <p className="text-[11px] text-slate-400">
+                          {lead.loanAudit.foreclosureChargesLevied > 0
+                            ? `Lender levied ₹${lead.loanAudit.foreclosureChargesLevied.toLocaleString("en-IN")} foreclosure fee. Under RBI master direction, floating-rate personal loans to individuals carry strictly 0% prepayment penalty.`
+                            : "Prepayment / Foreclosure penalty correctly zero-rated under individual borrower exemption."}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Transaction Ledger */}
+                  {lead.loanAudit.transactions && lead.loanAudit.transactions.length > 0 && (
+                    <div className="space-y-3">
+                      <h5 className="text-xs font-bold text-white uppercase tracking-wider">
+                        Extracted Statement Transactions Ledger ({lead.loanAudit.transactions.length} Rows)
+                      </h5>
+                      <div className="overflow-x-auto rounded-xl border border-slate-800">
+                        <table className="w-full text-left text-xs">
+                          <thead className="bg-navy-900 text-slate-400 border-b border-slate-800">
+                            <tr>
+                              <th className="p-2.5">Date</th>
+                              <th className="p-2.5">Description</th>
+                              <th className="p-2.5 text-right">Debit</th>
+                              <th className="p-2.5 text-right">Credit</th>
+                              <th className="p-2.5 text-right">Balance</th>
+                              <th className="p-2.5 text-center">RBI Flag</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-slate-800/60 bg-navy-950 font-mono text-[11px]">
+                            {lead.loanAudit.transactions.slice(0, 10).map((t: any, i: number) => (
+                              <tr key={i} className={t.isViolation ? "bg-rose-950/20" : ""}>
+                                <td className="p-2.5 text-slate-400">{t.date}</td>
+                                <td className="p-2.5 text-white font-sans">{t.description}</td>
+                                <td className="p-2.5 text-right text-rose-400">{t.debit ? `₹${t.debit.toLocaleString("en-IN")}` : "-"}</td>
+                                <td className="p-2.5 text-right text-emerald-400">{t.credit ? `₹${t.credit.toLocaleString("en-IN")}` : "-"}</td>
+                                <td className="p-2.5 text-right text-slate-300">₹{(t.balance || 0).toLocaleString("en-IN")}</td>
+                                <td className="p-2.5 text-center">
+                                  {t.isViolation ? (
+                                    <span className="px-1.5 py-0.5 rounded bg-rose-950 text-rose-300 border border-rose-800 text-[9px] font-bold">
+                                      VIOLATION
+                                    </span>
+                                  ) : (
+                                    <span className="text-slate-600">-</span>
+                                  )}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="p-8 rounded-2xl bg-navy-950 border border-dashed border-slate-800 text-center space-y-3">
+                  <ReceiptText className="w-10 h-10 text-slate-600 mx-auto" />
+                  <h4 className="text-sm font-bold text-white">No Loan Statement Audited Yet for {lead.customerName}</h4>
+                  <p className="text-xs text-slate-400 max-w-md mx-auto">
+                    Launch the Loan Statement Forensic Analyzer to paste or upload the customer's PDF/CSV statement and detect illegal interest charges, bounce fees & RBI guideline breaches.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setIsLoanAnalyzerOpen(true)}
+                    className="py-2 px-4 rounded-xl bg-amber-500 hover:bg-amber-400 text-navy-950 font-bold text-xs inline-flex items-center gap-1.5 cursor-pointer transition-all"
+                  >
+                    <Zap className="w-3.5 h-3.5" />
+                    <span>Launch Statement Forensic Audit</span>
+                  </button>
+                </div>
+              )}
             </div>
           )}
 
@@ -845,9 +1236,9 @@ export const LeadDocketModal: React.FC<LeadDocketModalProps> = ({
                   <span className="text-slate-200">{lead.address}</span>, DO HEREBY NOMINATE, CONSTITUTE AND APPOINT:
                 </p>
 
-                <div className="p-3 rounded-xl bg-navy-950 font-sans text-[11px] border border-slate-800">
+                <div className="p-3 rounded-xl bg-navy-950 font-sans text-[11px] border border-slate-800 space-y-0.5">
                   <p className="font-bold text-amber-300">Savrdh Financial Services Private Limited (CIN: U67100UP2021PTC156235)</p>
-                  <p className="text-slate-400">Assigned Advocate: {lead.assignedAdvisor?.name || "Adv. Vikram Malhotra"} (BCI/MAH/2849/2012)</p>
+                  <p className="text-slate-300 text-[10px]">Authorized Case Officer: {lead.assignedAdvisor?.name || "Savrdh Legal & Dispute Team"} (Bureau & Bank Dispute Desk)</p>
                 </div>
 
                 <p>
@@ -1109,6 +1500,44 @@ export const LeadDocketModal: React.FC<LeadDocketModalProps> = ({
         isOpen={isBureauModalOpen}
         onClose={() => setIsBureauModalOpen(false)}
       />
+
+      {/* Live AI CIBIL Forensic Analyzer Modal */}
+      {isCibilAnalyzerOpen && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4 overflow-y-auto">
+          <div className="w-full max-w-6xl max-h-[92vh] bg-navy-950 border border-amber-500/40 rounded-3xl overflow-hidden flex flex-col shadow-2xl">
+            <CibilReportAnalyzer
+              leadName={lead.customerName}
+              leadPan={lead.panNumber}
+              initialReport={lead.cibilAnalysis || null}
+              onClose={() => setIsCibilAnalyzerOpen(false)}
+              onApplyToApp={async (auditedReport) => {
+                await saveLeadCibilAuditApi(lead.leadId, auditedReport);
+                onLeadUpdated();
+                setIsCibilAnalyzerOpen(false);
+              }}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Live AI Loan Statement Forensic Analyzer Modal */}
+      {isLoanAnalyzerOpen && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4 overflow-y-auto">
+          <div className="w-full max-w-6xl max-h-[92vh] bg-navy-950 border border-blue-500/40 rounded-3xl overflow-hidden flex flex-col shadow-2xl">
+            <LoanStatementAnalyzer
+              leadName={lead.customerName}
+              leadId={lead.leadId}
+              initialStatement={lead.loanAudit || null}
+              onClose={() => setIsLoanAnalyzerOpen(false)}
+              onApplyToLead={async (auditedStatement) => {
+                await saveLeadLoanAuditApi(lead.leadId, auditedStatement);
+                onLeadUpdated();
+                setIsLoanAnalyzerOpen(false);
+              }}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 };

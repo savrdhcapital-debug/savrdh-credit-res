@@ -221,6 +221,31 @@ export interface AssignedAdvisor {
   experienceYears: number;
   casesResolved: number;
   rating: number;
+  role?: string;
+  status?: "ACTIVE" | "INACTIVE";
+  isDefault?: boolean;
+  activeCasesCount?: number;
+}
+
+export interface TeamMember {
+  id: string;
+  name: string;
+  role: "LEGAL_ADVOCATE" | "CASE_OFFICER" | "OTS_NEGOTIATOR" | "NODAL_OFFICER" | "CREDIT_ANALYST";
+  designation: string;
+  phone: string;
+  email: string;
+  barCouncilNumber?: string;
+  employeeId?: string;
+  experienceYears: number;
+  casesResolved: number;
+  activeCasesCount?: number;
+  rating: number;
+  photo: string;
+  status: "ACTIVE" | "INACTIVE";
+  isDefault: boolean;
+  department?: string;
+  notes?: string;
+  createdAt: string;
 }
 
 export type CaseStageId =
@@ -263,6 +288,7 @@ export interface UploadedDoc {
   uploadedAt: string;
   status: "VERIFIED" | "UNDER_REVIEW" | "ACTION_REQUIRED";
   downloadUrl?: string;
+  dataUrl?: string;
   notes?: string;
 }
 
@@ -358,6 +384,9 @@ export interface AdminLeadDetail extends CRMLeadRecord {
   assignedAdvisor?: AssignedAdvisor;
   notes?: AdminLeadNote[];
   timeline?: AdminLeadTimelineEvent[];
+  uploadedDocs?: UploadedDoc[];
+  loanAudit?: LoanStatementAnalysis;
+  cibilAnalysis?: CreditBureauReport;
 }
 
 export interface AdminStats {

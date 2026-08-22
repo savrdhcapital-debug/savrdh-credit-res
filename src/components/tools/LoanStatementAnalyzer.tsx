@@ -34,17 +34,25 @@ import { SAMPLE_LOAN_STATEMENTS } from "../../data/mockData";
 import { analyzeLoanStatementApi } from "../../services/api";
 
 interface LoanStatementAnalyzerProps {
+  initialStatement?: LoanStatementAnalysis;
+  onApplyToLead?: (statement: LoanStatementAnalysis) => void;
   onClose?: () => void;
   isStandalone?: boolean;
+  leadName?: string;
+  leadId?: string;
 }
 
 export const LoanStatementAnalyzer: React.FC<LoanStatementAnalyzerProps> = ({
+  initialStatement,
+  onApplyToLead,
   onClose,
   isStandalone = false,
+  leadName,
+  leadId,
 }) => {
-  const [statement, setStatement] = useState<LoanStatementAnalysis>(SAMPLE_LOAN_STATEMENTS[0]);
-  const [activeSampleId, setActiveSampleId] = useState<string>("loan-sample-1");
-  const [inputMode, setInputMode] = useState<"DEMO" | "UPLOAD" | "PASTE">("DEMO");
+  const [statement, setStatement] = useState<LoanStatementAnalysis | null>(initialStatement || null);
+  const [activeSampleId, setActiveSampleId] = useState<string>("");
+  const [inputMode, setInputMode] = useState<"UPLOAD" | "PASTE" | "DEMO">("UPLOAD");
 
   const [uploadedFile, setUploadedFile] = useState<{ name: string; size: string; dataUrl: string } | null>(null);
   const [rawText, setRawText] = useState("");
@@ -56,6 +64,17 @@ export const LoanStatementAnalyzer: React.FC<LoanStatementAnalyzerProps> = ({
   const [showLegalNoticeModal, setShowLegalNoticeModal] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleStartFreshSession = () => {
+    setStatement(null);
+    setActiveSampleId("");
+    setUploadedFile(null);
+    setRawText("");
+    setErrorMsg("");
+    setSuccessMsg("Fresh loan audit session initialized. Upload statement PDF or paste ledger text.");
+    setInputMode("UPLOAD");
+    setTimeout(() => setSuccessMsg(""), 3500);
+  };
 
   const handleSelectDemo = (sampleId: string) => {
     const s = SAMPLE_LOAN_STATEMENTS.find((item) => item.id === sampleId);
@@ -84,6 +103,11 @@ export const LoanStatementAnalyzer: React.FC<LoanStatementAnalyzerProps> = ({
   };
 
   const handleRunAnalysis = async () => {
+    if (!uploadedFile && !rawText.trim()) {
+      setErrorMsg("Please upload a loan statement PDF or paste ledger text to audit.");
+      return;
+    }
+
     setIsAnalyzing(true);
     setErrorMsg("");
     setSuccessMsg("");
@@ -150,40 +174,54 @@ export const LoanStatementAnalyzer: React.FC<LoanStatementAnalyzerProps> = ({
             <span>Loan Statement & RBI Penalty Audit</span>
           </h1>
           <p className="text-xs text-slate-400 mt-0.5">
-            Audits lender EMI ledgers, flags unlawful compounded penal interest under RBI Circular (2024), and computes lawful pre-closure payoffs.
+            {leadName ? `Auditing Statement for Lead: ${leadName}` : "Audits lender EMI ledgers, flags unlawful compounded penal interest under RBI Circular (2024), and computes lawful pre-closure payoffs."}
           </p>
         </div>
 
-        {onClose && (
-          <button
-            onClick={onClose}
-            className="self-start sm:self-auto py-1.5 px-3 rounded-xl bg-navy-900 border border-slate-700 hover:border-slate-500 text-slate-300 text-xs font-semibold"
-          >
-            Close Tool
-          </button>
-        )}
+        <div className="flex flex-wrap items-center gap-2">
+          {statement && (
+            <button
+              onClick={handleStartFreshSession}
+              className="py-1.5 px-3 rounded-xl bg-navy-900 border border-slate-700 hover:border-amber-500 text-amber-300 text-xs font-semibold flex items-center gap-1.5 cursor-pointer"
+            >
+              <RefreshCw className="w-3.5 h-3.5" />
+              <span>Start Fresh Session</span>
+            </button>
+          )}
+
+          {statement && onApplyToLead && (
+            <button
+              onClick={() => onApplyToLead(statement)}
+              className="py-1.5 px-3 rounded-xl bg-gold-gradient text-navy-950 text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow hover:brightness-110"
+            >
+              <CheckCircle2 className="w-3.5 h-3.5" />
+              <span>Save & Attach to Lead</span>
+            </button>
+          )}
+
+          {onClose && (
+            <button
+              onClick={onClose}
+              className="self-start sm:self-auto py-1.5 px-3 rounded-xl bg-navy-900 border border-slate-700 hover:border-slate-500 text-slate-300 text-xs font-semibold"
+            >
+              Close Tool
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Input Mode Selector Bar */}
-      <div className="p-3 rounded-2xl bg-navy-950 border border-slate-800/90 space-y-3">
+      <div className="p-3.5 rounded-2xl bg-navy-950 border border-slate-800/90 space-y-3">
         <div className="flex items-center justify-between">
-          <span className="text-xs font-bold text-slate-300">Choose Statement Source:</span>
+          <span className="text-xs font-bold text-slate-300">Intake / Input Method:</span>
           <div className="flex items-center gap-1 bg-navy-900 p-1 rounded-xl border border-slate-800 text-[11px]">
-            <button
-              onClick={() => setInputMode("DEMO")}
-              className={`px-3 py-1 rounded-lg font-medium transition-colors ${
-                inputMode === "DEMO" ? "bg-amber-500 text-navy-950 font-bold" : "text-slate-400 hover:text-slate-200"
-              }`}
-            >
-              Demo Samples (2)
-            </button>
             <button
               onClick={() => setInputMode("UPLOAD")}
               className={`px-3 py-1 rounded-lg font-medium transition-colors ${
                 inputMode === "UPLOAD" ? "bg-amber-500 text-navy-950 font-bold" : "text-slate-400 hover:text-slate-200"
               }`}
             >
-              Upload Any PDF / CSV
+              Upload Statement PDF
             </button>
             <button
               onClick={() => setInputMode("PASTE")}
@@ -192,6 +230,14 @@ export const LoanStatementAnalyzer: React.FC<LoanStatementAnalyzerProps> = ({
               }`}
             >
               Paste Statement Text
+            </button>
+            <button
+              onClick={() => setInputMode("DEMO")}
+              className={`px-3 py-1 rounded-lg font-medium transition-colors ${
+                inputMode === "DEMO" ? "bg-amber-500 text-navy-950 font-bold" : "text-slate-400 hover:text-slate-200"
+              }`}
+            >
+              Sample Statements
             </button>
           </div>
         </div>
@@ -236,11 +282,11 @@ export const LoanStatementAnalyzer: React.FC<LoanStatementAnalyzerProps> = ({
           <div className="space-y-3 pt-1">
             <div
               onClick={() => fileInputRef.current?.click()}
-              className="p-5 rounded-xl border-2 border-dashed border-slate-700 hover:border-amber-500/60 bg-navy-900/40 text-center cursor-pointer transition-colors"
+              className="p-6 rounded-xl border-2 border-dashed border-amber-500/30 hover:border-amber-500 bg-navy-900/40 text-center cursor-pointer transition-colors"
             >
-              <Upload className="w-6 h-6 text-amber-400 mx-auto mb-2" />
+              <Upload className="w-7 h-7 text-amber-400 mx-auto mb-2" />
               <p className="text-xs font-bold text-slate-200">
-                {uploadedFile ? uploadedFile.name : "Click or Drag & Drop ANY Bank / NBFC Loan Statement PDF"}
+                {uploadedFile ? uploadedFile.name : "Click or Drag & Drop ANY Real Bank / NBFC Loan Statement PDF"}
               </p>
               <p className="text-[11px] text-slate-400 mt-1">
                 {uploadedFile ? `Size: ${uploadedFile.size} • Ready for RBI Audit` : "Supports HDFC, Bajaj Finance, SBI, ICICI, Tata Capital, Axis, Kotak, Piramal, etc."}
@@ -317,7 +363,22 @@ export const LoanStatementAnalyzer: React.FC<LoanStatementAnalyzerProps> = ({
         </div>
       )}
 
-      {/* 1. KEY LOAN SANCTION & REPAYMENT SUMMARY CARD */}
+      {/* When no statement is loaded, show clean empty state */}
+      {!statement && !isAnalyzing && (
+        <div className="p-8 rounded-2xl bg-navy-950 border border-slate-800 text-center space-y-3">
+          <div className="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center mx-auto text-amber-400">
+            <ReceiptText className="w-6 h-6" />
+          </div>
+          <h2 className="text-base font-bold text-slate-100">Fresh Session Ready — No Loan Statement Loaded</h2>
+          <p className="text-xs text-slate-400 max-w-md mx-auto">
+            Upload the customer&apos;s bank or NBFC loan account statement PDF to perform an automated RBI Circular 2024 compliance audit, calculate unlawful compounded penal interest, and generate advocate dispute notices.
+          </p>
+        </div>
+      )}
+
+      {/* MAIN ANALYSIS REPORT VIEW */}
+      {statement && (
+      <div className="space-y-5">
       <div className="p-5 rounded-2xl navy-card-gold relative overflow-hidden space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
@@ -509,9 +570,11 @@ export const LoanStatementAnalyzer: React.FC<LoanStatementAnalyzerProps> = ({
           </div>
         </div>
       )}
+      </div>
+      )}
 
       {/* Formal Dispute Notice Modal */}
-      {showLegalNoticeModal && (
+      {showLegalNoticeModal && statement && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
           <div className="bg-navy-900 border-2 border-amber-500/60 rounded-2xl max-w-2xl w-full p-6 space-y-4 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between pb-3 border-b border-slate-800">

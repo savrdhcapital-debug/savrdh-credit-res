@@ -25,6 +25,49 @@ export const ReportViewerModal: React.FC<ReportModalProps> = ({
     window.print();
   };
 
+  // Dynamic borrower profile resolution strictly from real KYC, CIBIL Report, or Lead data
+  const effectiveName =
+    kycData?.fetchedProfile?.name?.trim() ||
+    userProfile?.fullName?.trim() ||
+    creditReport?.verifiedProfile?.matchedName?.trim() ||
+    crmLead?.customerName?.trim() ||
+    "Principal Borrower";
+
+  const effectivePan =
+    kycData?.panNumber?.trim() ||
+    creditReport?.verifiedProfile?.matchedPan?.trim() ||
+    crmLead?.panNumber?.trim() ||
+    "PAN ON FILE";
+
+  const effectiveAadhaar =
+    kycData?.maskedAadhaar?.trim() ||
+    crmLead?.aadhaarNumberMasked?.trim() ||
+    (kycData?.aadhaarNumber ? `XXXX-XXXX-${kycData.aadhaarNumber.slice(-4)}` : "XXXX-XXXX-XXXX");
+
+  const effectiveMobile =
+    userProfile?.mobile?.trim() ||
+    creditReport?.verifiedProfile?.matchedMobile?.trim() ||
+    crmLead?.mobile?.trim() ||
+    "";
+
+  const effectiveEmail =
+    userProfile?.email?.trim() ||
+    creditReport?.verifiedProfile?.matchedEmail?.trim() ||
+    crmLead?.email?.trim() ||
+    "";
+
+  const effectiveAddress =
+    kycData?.fetchedProfile?.address?.trim() ||
+    creditReport?.verifiedProfile?.matchedAddress?.trim() ||
+    userProfile?.cityState?.trim() ||
+    crmLead?.address?.trim() ||
+    "Address on Record as per KYC & Credit Bureau";
+
+  const effectiveRefNo =
+    crmLead?.loaReferenceNumber ||
+    paymentDetails?.invoiceNumber?.replace("SAV-INV", "SAV-LOA") ||
+    `SAV-LOA-2026-${Math.floor(10000 + Math.random() * 90000)}`;
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fadeIn">
       <div className="w-full max-w-xl max-h-[90vh] bg-slate-900 border border-amber-500/30 rounded-2xl flex flex-col shadow-2xl overflow-hidden">
@@ -100,15 +143,15 @@ export const ReportViewerModal: React.FC<ReportModalProps> = ({
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3.5 rounded-xl bg-navy-900/60 border border-slate-800">
                 <div className="space-y-1">
                   <span className="text-[10px] text-slate-400 block font-bold uppercase tracking-wider">BILLED TO (CUSTOMER):</span>
-                  <p className="font-bold text-slate-100 text-sm">{userProfile.fullName || "Rajeshwar Sharma"}</p>
+                  <p className="font-bold text-slate-100 text-sm">{effectiveName}</p>
                   <p className="text-[11px] text-slate-300">
-                    <span className="text-slate-400 font-medium">PAN:</span> {kycData.panNumber || "ABCDE1234F"} • <span className="text-slate-400 font-medium">Aadhaar:</span> {kycData.maskedAadhaar || "XXXX-XXXX-9283"}
+                    <span className="text-slate-400 font-medium">PAN:</span> {effectivePan} • <span className="text-slate-400 font-medium">Aadhaar:</span> {effectiveAadhaar}
                   </p>
                   <p className="text-[11px] text-slate-300">
-                    <span className="text-slate-400 font-medium">Mobile:</span> +91 {userProfile.mobile || "9820491823"} • <span className="text-slate-400 font-medium">Email:</span> {userProfile.email || "rajeshwar.sharma@example.com"}
+                    <span className="text-slate-400 font-medium">Mobile:</span> {effectiveMobile ? `+91 ${effectiveMobile}` : "On File"} • <span className="text-slate-400 font-medium">Email:</span> {effectiveEmail || "On File"}
                   </p>
                   <p className="text-[10px] text-slate-400 leading-tight pt-1">
-                    <span className="text-slate-500">Address:</span> {kycData.fetchedProfile?.address || "Royal Palms Residency, Aarey Colony, Goregaon East, Mumbai, MH - 400065"}
+                    <span className="text-slate-500">Address:</span> {effectiveAddress}
                   </p>
                 </div>
 
@@ -280,7 +323,7 @@ export const ReportViewerModal: React.FC<ReportModalProps> = ({
                 <p className="text-[10px] text-slate-400">Prepared under Banking Regulation Act & Credit Information Companies (Regulation) Act, 2005</p>
               </div>
               <p className="text-[11px] text-slate-300 leading-relaxed">
-                This document certifies that the borrower <strong>{userProfile.fullName}</strong> is legally represented by Savrdh Financial Services Private Limited for the amicable settlement and final credit score updation of all disputed accounts.
+                This document certifies that the borrower <strong>{effectiveName}</strong> (PAN: <span className="font-mono text-amber-300">{effectivePan}</span>) is legally represented by Savrdh Financial Services Private Limited for the amicable settlement and final credit score updation of all disputed accounts.
               </p>
             </div>
           )}
@@ -297,7 +340,7 @@ export const ReportViewerModal: React.FC<ReportModalProps> = ({
                   LETTER OF AUTHORITY & LEGAL DISPUTE REPRESENTATION CONSENT
                 </h3>
                 <p className="text-[10px] text-slate-400">
-                  Ref No: <span className="font-mono text-amber-300 font-bold">{crmLead?.loaReferenceNumber || "SAV-LOA-2026-89412"}</span> • Date: {new Date().toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}
+                  Ref No: <span className="font-mono text-amber-300 font-bold">{effectiveRefNo}</span> • Date: {new Date().toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}
                 </p>
               </div>
 
@@ -319,23 +362,23 @@ export const ReportViewerModal: React.FC<ReportModalProps> = ({
               <div className="p-3 rounded-xl bg-navy-900/70 border border-slate-800 text-[11px] space-y-1">
                 <span className="text-[10px] text-amber-400 font-bold uppercase tracking-wider block">GRANTOR / PRINCIPAL BORROWER:</span>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-slate-300">
-                  <p><span className="text-slate-500 font-medium">Name:</span> <strong className="text-slate-100">{userProfile.fullName || "Rajeshwar Sharma"}</strong></p>
-                  <p><span className="text-slate-500 font-medium">PAN Number:</span> <span className="font-mono text-slate-200 font-bold">{kycData.panNumber || "ABCDE1234F"}</span></p>
-                  <p><span className="text-slate-500 font-medium">Aadhaar (Masked):</span> <span className="font-mono text-slate-200 font-bold">{kycData.maskedAadhaar || "XXXX-XXXX-9283"}</span></p>
-                  <p><span className="text-slate-500 font-medium">Mobile & Email:</span> +91 {userProfile.mobile || "9820491823"} • {userProfile.email || "client@savrdh.in"}</p>
+                  <p><span className="text-slate-500 font-medium">Name:</span> <strong className="text-slate-100">{effectiveName}</strong></p>
+                  <p><span className="text-slate-500 font-medium">PAN Number:</span> <span className="font-mono text-slate-200 font-bold">{effectivePan}</span></p>
+                  <p><span className="text-slate-500 font-medium">Aadhaar (Masked):</span> <span className="font-mono text-slate-200 font-bold">{effectiveAadhaar}</span></p>
+                  <p><span className="text-slate-500 font-medium">Mobile & Email:</span> {effectiveMobile ? `+91 ${effectiveMobile}` : "On File"} • {effectiveEmail || "On File"}</p>
                 </div>
                 <p className="text-[10px] text-slate-400 pt-1">
-                  <span className="text-slate-500">Residential Address:</span> {kycData.fetchedProfile?.address || "Royal Palms Residency, Aarey Colony, Goregaon East, Mumbai, MH - 400065"}
+                  <span className="text-slate-500">Residential Address:</span> {effectiveAddress}
                 </p>
               </div>
 
               {/* Authorized Representative */}
               <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-[11px] space-y-1">
-                <span className="text-[10px] text-amber-300 font-bold uppercase tracking-wider block">APPOINTED AUTHORIZED REPRESENTATIVE & LEGAL ADVOCATE:</span>
-                <p className="text-slate-200 font-bold">SAVRDH FINANCIAL SERVICES PRIVATE LIMITED</p>
-                <p className="text-[10px] text-slate-400">CIN: U67100UP2021PTC156235 • Corporate Office: 01, GAUR YAMUNA CITY Greater Noida, UP - 201301</p>
+                <span className="text-[10px] text-amber-300 font-bold uppercase tracking-wider block">APPOINTED AUTHORIZED ENTITY & LEGAL REPRESENTATIVE:</span>
+                <p className="text-slate-100 font-bold">SAVRDH FINANCIAL SERVICES PRIVATE LIMITED</p>
+                <p className="text-[10px] text-slate-400">CIN: U67100UP2021PTC156235 • Registered Office: 01, GAUR YAMUNA CITY Greater Noida, UP - 201301</p>
                 <p className="text-[10px] text-slate-300">
-                  Panel Legal Advocate: <strong className="text-amber-300">Adv. Vikram Malhotra</strong> (Bar Council Reg: <span className="font-mono">BCI/MAH/2849/2012</span>) & authorized legal representatives.
+                  Operational Authority: <strong className="text-amber-300">Savrdh Dispute Desk, Designated Case Officers & Legal Counsel</strong> (Authorized by the customer to manage case files, communicate via email/calls, submit formal representations, and discuss with Credit Bureaus, Banks, and NBFCs).
                 </p>
               </div>
 
@@ -371,7 +414,7 @@ export const ReportViewerModal: React.FC<ReportModalProps> = ({
                   <span className="text-[9px] font-mono text-slate-400">256-Bit SSL Timestamped</span>
                 </div>
                 <div className="grid grid-cols-2 gap-2 text-[10px] text-slate-400 font-mono">
-                  <p>Grantor Digital ID: <span className="text-slate-200">{userProfile.fullName?.toUpperCase() || "CUSTOMER"}_AUTH</span></p>
+                  <p>Grantor Digital ID: <span className="text-slate-200">{effectiveName.toUpperCase()}_AUTH</span></p>
                   <p>SHA-256 Hash: <span className="text-amber-300">8f92a10b48c909e4a3b7...</span></p>
                   <p>Timestamp: <span className="text-slate-200">{new Date().toISOString().replace("T", " ").slice(0, 19)} IST</span></p>
                   <p>Status: <span className="text-emerald-400 font-bold font-sans">Legally Enforceable & Active</span></p>
@@ -387,9 +430,9 @@ export const ReportViewerModal: React.FC<ReportModalProps> = ({
               <p>SHA-256 Checksum: 8f92a10b48c909e4</p>
             </div>
             <div className="text-right">
-              <div className="font-brand text-xs text-amber-400 font-bold">Adv. Vikram Malhotra</div>
-              <p className="text-[9px] text-slate-400">Senior Legal Resolution Lead</p>
-              <p className="text-[9px] text-slate-500">Savrdh Financial Services Private Limited</p>
+              <div className="font-brand text-xs text-amber-400 font-bold">SAVRDH FINANCIAL SERVICES PVT. LTD.</div>
+              <p className="text-[9px] text-slate-400">Authorized Signatory & Legal Dispute Desk</p>
+              <p className="text-[9px] text-slate-500">CIN: U67100UP2021PTC156235</p>
             </div>
           </div>
         </div>
