@@ -1,0 +1,7 @@
+import {redirect} from "next/navigation";import {createSupabaseServerClient} from "@/lib/supabase/server";import {PORTALS,type PortalKey} from "@/lib/platform";
+export type UserRole="customer"|"partner"|"employee"|"credit"|"manager"|"finance"|"owner"|"lender";
+const matrix:Record<PortalKey,UserRole[]>={customer:["customer","owner"],partner:["partner","manager","owner"],employee:["employee","manager","owner"],credit:["credit","manager","owner"],manager:["manager","owner"],finance:["finance","owner"],owner:["owner"],lender:["lender","owner"]};
+export const isPortalKey=(v:string):v is PortalKey=>(PORTALS as readonly string[]).includes(v);
+export async function getCurrentUserContext(){const s=await createSupabaseServerClient();const {data:{user}}=await s.auth.getUser();if(!user)return{user:null,roles:[] as UserRole[]};const {data}=await s.from("sfs_user_roles").select("sfs_roles(role_key)").eq("user_id",user.id);const roles=(data??[]).flatMap((r:any)=>{const x=Array.isArray(r.sfs_roles)?r.sfs_roles[0]:r.sfs_roles;return x?.role_key?[x.role_key as UserRole]:[]});return{user,roles}}
+export async function requirePortalAccess(p:PortalKey){const c=await getCurrentUserContext();if(!c.user)redirect("/login");if(!matrix[p].some(r=>c.roles.includes(r)))redirect("/?access=denied");return c}
+export function portalsForRoles(roles:UserRole[]){if(roles.includes("owner"))return PORTALS;return PORTALS.filter(p=>matrix[p].some(r=>roles.includes(r)))};
