@@ -1,0 +1,9 @@
+import {redirect} from "next/navigation";import {createSupabaseServerClient} from "@/lib/supabase/server";import {PORTALS,type PortalKey} from "@/lib/platform";
+export type UserRole="customer"|"partner"|"employee"|"credit"|"manager"|"finance"|"owner"|"lender";
+const matrix:Record<PortalKey,UserRole[]>={customer:["customer","owner"],partner:["partner","manager","owner"],employee:["employee","manager","owner"],credit:["credit","manager","owner"],manager:["manager","owner"],finance:["finance","owner"],owner:["owner"],lender:["lender","owner"]};
+const legacyRoleMap:Record<string,UserRole>={admin:"owner",super_admin:"owner",customer:"customer",partner:"partner",employee:"employee",credit:"credit",credit_officer:"credit",manager:"manager",finance:"finance",lender:"lender",owner:"owner",loan_officer:"employee",kyc_officer:"employee",collection_officer:"employee",support:"employee"};
+function normalizeRole(value:string):UserRole|null{const key=value.trim().toLowerCase();return legacyRoleMap[key]??null}
+export const isPortalKey=(v:string):v is PortalKey=>(PORTALS as readonly string[]).includes(v);
+export async function getCurrentUserContext(){const s=await createSupabaseServerClient();const {data:{user}}=await s.auth.getUser();if(!user)return{user:null,roles:[] as UserRole[]};const {data}=await s.from("sfs_user_roles").select("sfs_roles(role_key)").eq("user_id",user.id);const roles=Array.from(new Set((data??[]).flatMap((r:any)=>{const x=Array.isArray(r.sfs_roles)?r.sfs_roles[0]:r.sfs_roles;const role=x?.role_key?normalizeRole(x.role_key):null;return role?[role]:[]})));return{user,roles}}
+export async function requirePortalAccess(p:PortalKey){const c=await getCurrentUserContext();if(!c.user)redirect("/login");if(!matrix[p].some(r=>c.roles.includes(r)))redirect("/?access=denied");return c}
+export function portalsForRoles(roles:UserRole[]){if(roles.includes("owner"))return PORTALS;return PORTALS.filter(p=>matrix[p].some(r=>roles.includes(r)))};
